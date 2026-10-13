@@ -34,7 +34,9 @@ class CategoryService(BaseService):
         ).qs
         return self.get_response(
             filtered_categories,
-            CategoryListSerializer,
+            # Public list embeds children for the storefront category directory.
+            CategoriesListSerializer,
+            # CategoryListSerializer,
             many=True,
             context={"request": self.request},
         )
