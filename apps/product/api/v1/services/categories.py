@@ -8,6 +8,7 @@ from apps.product.api.v1.serializers.categories import (
     CategoryBreadcrumbHelperSerializer,
     CategoryCreateSerializer,
     CategoryListSerializer,
+    CategoryTreeSerializer,
     CategoryUpdateSerializer,
 )
 
@@ -35,7 +36,8 @@ class CategoryService(BaseService):
         return self.get_response(
             filtered_categories,
             # Public list embeds children for the storefront category directory.
-            CategoriesListSerializer,
+            # Category tree (groups -> sections -> subcategories) for the catalog page.
+            CategoryTreeSerializer,
             # CategoryListSerializer,
             many=True,
             context={"request": self.request},
@@ -76,6 +78,8 @@ class CategoryService(BaseService):
         category_id = kwargs.get("id")
         category = self.db.get_category(category_id)
         breadcrumbs = category.get_breadcrumbs()
+        # Group level (level 0) is not shown in the storefront breadcrumb trail.
+        breadcrumbs = [item for item in breadcrumbs if item.level != 0]
         return self.get_response(
             breadcrumbs,
             CategoryBreadcrumbHelperSerializer,
@@ -87,6 +91,8 @@ class CategoryService(BaseService):
         category_id = kwargs.get("id")
         category = self.db.get_public_category(category_id)
         breadcrumbs = category.get_breadcrumbs()
+        # Group level (level 0) is not shown in the storefront breadcrumb trail.
+        breadcrumbs = [item for item in breadcrumbs if item.level != 0]
         return self.get_response(
             breadcrumbs,
             CategoryBreadcrumbHelperSerializer,

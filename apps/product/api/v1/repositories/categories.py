@@ -6,7 +6,7 @@ class CategoryRepository:
     def get_public_categories(self):
         categories = Category.objects.filter(
             is_active=True, parent__isnull=True
-        ).prefetch_related("children")
+        ).prefetch_related("children", "children__children")
         return categories
 
     def get_categories(self):

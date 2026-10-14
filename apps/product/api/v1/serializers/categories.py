@@ -65,6 +65,23 @@ class CategoriesListSerializer(serializers.Serializer):
         return CategorySimpleSerializer(obj.parent, context={"request": request}).data
 
 
+class CategoryTreeSerializer(CategoriesListSerializer):
+    # Public catalog tree: groups -> sections -> subcategories in one response.
+    children = serializers.SerializerMethodField()
+
+    def get_children(self, obj):
+        request = self.context.get("request")
+        sections = []
+        for child in obj.children.all():
+            section = CategoryListSerializer(child, context={"request": request}).data
+            section["children"] = [
+                CategoryListSerializer(c, context={"request": request}).data
+                for c in child.children.all()
+            ]
+            sections.append(section)
+        return sections
+
+
 class CategoryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
