@@ -126,9 +126,27 @@ class ProductListSerializer(serializers.Serializer):
         read_only=True, allow_null=True, default=None
     )
     company = CompanySerializer(source="owner", allow_null=True, default=None)
+    # First variant attributes for the storefront product rows.
+    specifications = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField()
     created_at = serializers.DateTimeField()
     currency = serializers.SerializerMethodField()
+
+    def get_specifications(self, obj):
+        variant = obj.product_variants.filter(is_active=True).first()
+        if variant is None:
+            variant = obj.product_variants.first()
+        if variant is None:
+            return []
+        specs = []
+        pairs = variant.product_attribute_values.select_related(
+            "attribute", "attribute_value"
+        )[:6]
+        for pair in pairs:
+            specs.append(
+                {"name": pair.attribute.name, "value": pair.attribute_value.value}
+            )
+        return specs
 
     def get_currency(self, obj):
         target = get_target_currency(self.context)
