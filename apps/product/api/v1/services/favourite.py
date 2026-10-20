@@ -7,6 +7,7 @@ from apps.core.exceptions import (
     ObjectNotFoundException,
 )
 from apps.core.services import BaseService
+from apps.core.utils import set_guest_session_cookie
 from apps.product.api.v1.repositories.favourite import FavouriteRepository
 from apps.product.api.v1.serializers.favourite import (
     FavouriteCreateSerializer,
@@ -70,13 +71,7 @@ class FavouriteService(BaseService):
             )
 
         if not user:
-            response.set_cookie(
-                "sessionid",
-                session_key,
-                max_age=60 * 60 * 24 * 10,
-                httponly=True,
-                samesite="Lax",
-            )
+            set_guest_session_cookie(response, session_key)
 
         return response
 
