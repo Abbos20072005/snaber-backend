@@ -22,8 +22,6 @@ from apps.company.api.v1.serializers.companies import (
 from apps.core.services import BaseService, ViewService
 # Company draft moderation (disabled for the frontend)
 # from apps.company.models import Company as CompanyModel
-# from apps.notification.api.v1.repositories.notifications import NotificationRepository
-# from apps.notification.models import Notification
 # from apps.product.api.v1.filters.products import ProductDynamicFilter
 # from apps.product.api.v1.serializers.products import (
 #     CompanyProductListSerializer,

@@ -22,19 +22,9 @@ class BuyerRepository:
     def get_orders(self, user):
         return Order.objects.filter(buyer=user)
 
-    def get_active_statuses(self):
-        return [
-            Order.OrderStatus.NEGOTIATION,
-        ]
-
     def get_amount_expression(self):
         return ExpressionWrapper(
-            F("items__quantity")
-            * Coalesce(
-                F("items__product_variant__price_override"),
-                F("items__product_variant__product__price_max"),
-                Value(0),
-            ),
+            F("items__quantity") * F("items__price"),
             output_field=DecimalField(max_digits=20, decimal_places=2),
         )
 
@@ -42,18 +32,6 @@ class BuyerRepository:
         return self.get_orders(user).aggregate(
             total_orders=Coalesce(
                 Count("id", distinct=True), Value(0), output_field=IntegerField()
-            ),
-            active_orders=Coalesce(
-                Count(
-                    "id", filter=Q(status__in=self.get_active_statuses()), distinct=True
-                ),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            rfq_orders=Coalesce(
-                Count("id", filter=Q(order_type=Order.OrderType.RFQ), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
             ),
             estimated_spend=Coalesce(
                 Sum(self.get_amount_expression()),
@@ -103,48 +81,12 @@ class BuyerRepository:
             .order_by("month_date")
         )
 
-    def get_status_mix(self, user):
-        return self.get_orders(user).aggregate(
-            negotiation=Coalesce(
-                Count(
-                    "id", filter=Q(status=Order.OrderStatus.NEGOTIATION), distinct=True
-                ),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            accepted=Coalesce(
-                Count("id", filter=Q(status=Order.OrderStatus.ACCEPTED), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            rejected=Coalesce(
-                Count("id", filter=Q(status=Order.OrderStatus.REJECTED), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-        )
-
-    def get_order_type_split(self, user):
-        return self.get_orders(user).aggregate(
-            ready=Coalesce(
-                Count("id", filter=Q(order_type=Order.OrderType.READY), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            rfq=Coalesce(
-                Count("id", filter=Q(order_type=Order.OrderType.RFQ), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-        )
-
     def get_recent_buying_activity(self, user):
         return (
             self.get_orders(user)
-            .prefetch_related("items__product_variant__product")
+            .prefetch_related("items__product")
             .annotate(
-                product_name=Max("items__product_variant__product__name"),
-                product_type=Max("items__product_variant__product__product_type"),
+                product_name=Max("items__product__name"),
                 quantity=Coalesce(
                     Sum("items__quantity"),
                     Value(0),
@@ -157,28 +99,4 @@ class BuyerRepository:
                 ),
             )
             .order_by("-created_at")[:5]
-        )
-
-    def get_summary(self, user):
-        return self.get_orders(user).aggregate(
-            total_orders=Coalesce(
-                Count("id", distinct=True), Value(0), output_field=IntegerField()
-            ),
-            accepted_orders=Coalesce(
-                Count("id", filter=Q(status=Order.OrderStatus.ACCEPTED), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            orders_in_progress=Coalesce(
-                Count(
-                    "id", filter=Q(status__in=self.get_active_statuses()), distinct=True
-                ),
-                Value(0),
-                output_field=IntegerField(),
-            ),
-            custom_requests=Coalesce(
-                Count("id", filter=Q(order_type=Order.OrderType.RFQ), distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
         )

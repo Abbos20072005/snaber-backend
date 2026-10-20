@@ -3,7 +3,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdminOrSuperAdmin, IsSeller
+from apps.core.permissions import IsAdmin
 from apps.product.api.v1.serializers.attributes import (
     AttributeCreateSerializer,
     AttributeListSerializer,
@@ -16,8 +16,8 @@ from apps.product.api.v1.services.attributes import (
 class AttributeListCreateView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [IsAuthenticated(), (IsAdminOrSuperAdmin | IsSeller)()]
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated(), (IsAdmin)()]
 
     @swagger_auto_schema(
         responses={200: AttributeListSerializer},
@@ -52,7 +52,7 @@ class AttributeListCreateView(APIView):
 
 
 class AttributeUpdateDeleteView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: AttributeListSerializer},

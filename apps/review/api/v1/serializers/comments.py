@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.product.models import Variant
+from apps.product.models import Product
 
 
 class CommentImageSerializer(serializers.Serializer):
@@ -8,15 +8,21 @@ class CommentImageSerializer(serializers.Serializer):
     image = serializers.FileField()
 
 
-class VariantShortSerializer(serializers.Serializer):
+class ProductShortSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    product_id = serializers.IntegerField(source="product.id", read_only=True)
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    sku_variant = serializers.CharField(read_only=True)
-    image = serializers.FileField(source="product.image", read_only=True)
+    name = serializers.CharField(read_only=True)
+    image = serializers.SerializerMethodField()
     average_rating = serializers.DecimalField(
         max_digits=3, decimal_places=1, read_only=True
     )
+
+    def get_image(self, obj):
+        first = obj.images.first()
+        if not first or not first.file:
+            return None
+        request = self.context.get("request")
+        url = first.file.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class CommentUserSerializer(serializers.Serializer):
@@ -27,7 +33,7 @@ class CommentUserSerializer(serializers.Serializer):
 
 class CommentListSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    variant = VariantShortSerializer(read_only=True)
+    product = ProductShortSerializer(read_only=True)
     user = CommentUserSerializer(read_only=True)
     text = serializers.CharField(read_only=True)
     rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
@@ -37,7 +43,7 @@ class CommentListSerializer(serializers.Serializer):
 
 
 class CommentCreateSerializer(serializers.Serializer):
-    variant = serializers.PrimaryKeyRelatedField(queryset=Variant.objects.all())
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     text = serializers.CharField()
     rating = serializers.DecimalField(max_digits=3, decimal_places=1)
     images = serializers.ListField(

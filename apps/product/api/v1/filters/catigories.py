@@ -16,6 +16,6 @@ class CategoryFilter(django_filters.FilterSet):
             return queryset
         return queryset.annotate(
             orders_count=Count(
-                "category_products__product_variants__order_items__order", distinct=True
+                "category_products__order_items__order", distinct=True
             )
         ).order_by("-orders_count", "-created_at")

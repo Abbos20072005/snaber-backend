@@ -10,7 +10,6 @@ from apps.company.api.v1.serializers.certificates import (
 from apps.company.api.v1.serializers.galleries import CompanyGalleryListSerializer
 from apps.company.models import Company, CompanyMember, Feature
 from apps.core.exceptions import ActionNotAllowedException, BaseUnauthorizedException
-from apps.product.models import Product
 
 
 class RegionListSerializer(serializers.Serializer):
@@ -23,51 +22,12 @@ class IndustryListSerializer(serializers.Serializer):
     name = serializers.CharField()
 
 
-class CompanyProductBadgeMixin:
-    def get_product_badges(self, obj):
-        has_ready_products = getattr(obj, "has_ready_products", None)
-        has_rfq_products = getattr(obj, "has_rfq_products", None)
-
-        if has_ready_products is None or has_rfq_products is None:
-            product_types = set(
-                obj.owner_products.filter(is_active=True)
-                .values_list("product_type", flat=True)
-                .distinct()
-            )
-
-            has_ready_products = bool(
-                product_types
-                & {
-                    Product.ProductType.READY,
-                    Product.ProductType.BOTH,
-                }
-            )
-
-            has_rfq_products = bool(
-                product_types
-                & {
-                    Product.ProductType.MADE_TO_ORDER,
-                    Product.ProductType.BOTH,
-                }
-            )
-
-        if has_ready_products and has_rfq_products:
-            return "both"
-        elif has_ready_products:
-            return "ready"
-        elif has_rfq_products:
-            return "rfq"
-
-        return None
-
-
-class CompanyListSerializer(CompanyProductBadgeMixin, serializers.Serializer):
+class CompanyListSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     logo = serializers.FileField()
     region = RegionListSerializer(read_only=True)
     industries = IndustryListSerializer(read_only=True, many=True)
-    product_badges = serializers.SerializerMethodField()
     view_count = serializers.IntegerField()
     # Company draft moderation (status + moderator comment) is hidden from the frontend
     # status = serializers.CharField()
@@ -122,7 +82,7 @@ class FeatureListSerializer(serializers.Serializer):
     name_en = serializers.CharField()
 
 
-class CompanyDetailListSerializer(CompanyProductBadgeMixin, serializers.Serializer):
+class CompanyDetailListSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     name_uz = serializers.CharField()
@@ -142,7 +102,6 @@ class CompanyDetailListSerializer(CompanyProductBadgeMixin, serializers.Serializ
     address = serializers.CharField(read_only=True)
     region = RegionListSerializer(read_only=True)
     industries = IndustryListSerializer(read_only=True, many=True)
-    product_badges = serializers.SerializerMethodField()
 
     certificates = CompanyCertificateListSerializer(read_only=True, many=True)
     gallery = CompanyGalleryListSerializer(read_only=True, many=True)
@@ -240,7 +199,7 @@ class CompanyCreateSerializer(serializers.ModelSerializer):
 
         company = Company.objects.create(**validated_data)
 
-        if request.user.role == User.Roles.SELLER:
+        if request.user.role == User.Roles.ADMIN:
             if CompanyMember.objects.filter(user=request.user).exists():
                 raise ActionNotAllowedException(detail="Company already exists")
             CompanyMember.objects.create(
@@ -329,12 +288,11 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
 #         fields = ("id", "status", "description_moderator")
 
 
-class CompanySerializer(CompanyProductBadgeMixin, serializers.Serializer):
+class CompanySerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
     logo = serializers.FileField(read_only=True)
     region = RegionListSerializer()
-    product_badges = serializers.SerializerMethodField()
 
 
 class CompanyIndustriesSerializer(serializers.Serializer):

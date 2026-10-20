@@ -8,8 +8,8 @@ class Conversation(CreatedUpdatedAbstractModel):
         PRODUCT = "product", "Product"
         ORDER = "order", "Order"
 
-    product_variant = models.ForeignKey(
-        "product.Variant",
+    product = models.ForeignKey(
+        "product.Product",
         on_delete=models.SET_NULL,
         null=True,
         related_name="conversations",

@@ -8,13 +8,13 @@ from apps.core.api.v1.serializers.aboutus import (
     AboutUsSerializer,
 )
 from apps.core.api.v1.services.aboutus import AboutUsImagesService, AboutUsService
-from apps.core.permissions import IsAdminOrSuperAdmin
+from apps.core.permissions import IsAdmin
 
 
 class AboutUsView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
+            return [IsAuthenticated(), IsAdmin()]
         return [AllowAny()]
 
     @swagger_auto_schema(
@@ -36,7 +36,7 @@ class AboutUsView(APIView):
 
 
 class AboutUsImageView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         request_body=AboutUsImageSerializer,

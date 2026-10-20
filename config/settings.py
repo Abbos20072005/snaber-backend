@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     "apps.company",
     "apps.order",
     "apps.chat",
-    "apps.notification",
     "apps.dashboard",
     "apps.review",
     "modeltranslation",
@@ -261,6 +260,13 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_DB = int(os.getenv("REDIS_DB", 1))
 OTP_EXPIRY = int(os.getenv("OTP_EXPIRY", 300))
+OTP_RESEND_COOLDOWN = int(os.getenv("OTP_RESEND_COOLDOWN", 60))
+OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", 5))
+OTP_MAX_SENDS_PER_HOUR = int(os.getenv("OTP_MAX_SENDS_PER_HOUR", 5))
+
+# OTP codes are delivered to a Telegram channel until an SMS provider is connected.
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_OTP_CHAT_ID = os.getenv("TELEGRAM_OTP_CHAT_ID", "")
 
 LANGUAGES = (
     ("en", "English"),
@@ -307,7 +313,3 @@ SOCIALACCOUNT_PROVIDERS = {
 LOCALE_PATHS = [
     BASE_DIR / "locale",
 ]
-
-# Currency
-BASE_CURRENCY = "UZS"
-CURRENCY_CACHE_TTL = int(os.getenv("CURRENCY_CACHE_TTL", 3600))

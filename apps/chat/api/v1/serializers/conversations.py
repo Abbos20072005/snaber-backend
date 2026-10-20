@@ -6,9 +6,9 @@ from apps.chat.models import Conversation, File, Message
 class ConversationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
-        fields = ("type", "product_variant", "order")
+        fields = ("type", "product", "order")
         extra_kwargs = {
-            "product_variant": {"required": False, "allow_null": True},
+            "product": {"required": False, "allow_null": True},
             "order": {"required": False, "allow_null": True},
         }
 
@@ -27,8 +27,8 @@ class ConversationListSerializer(serializers.Serializer):
     type = serializers.CharField()
     buyer = ConversationUserSerializer()
     seller = ConversationUserSerializer()
-    product_variant = serializers.IntegerField(
-        source="product_variant_id", allow_null=True
+    product = serializers.IntegerField(
+        source="product_id", allow_null=True
     )
     order = serializers.IntegerField(source="order_id", allow_null=True)
     unread_message_count = serializers.SerializerMethodField()

@@ -3,7 +3,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdminOrSuperAdmin, IsSeller
+from apps.core.permissions import IsAdmin
 from apps.product.api.v1.serializers.units import (
     UnitCreateSerializer,
     UnitListSerializer,
@@ -14,8 +14,8 @@ from apps.product.api.v1.services.units import UnitService
 class UnitListCreateView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [IsAuthenticated(), (IsSeller | IsAdminOrSuperAdmin)()]
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated(), (IsAdmin)()]
 
     @swagger_auto_schema(
         responses={200: UnitListSerializer},
@@ -44,7 +44,7 @@ class UnitListCreateView(APIView):
 
 
 class UnitUpdateDeleteView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: UnitListSerializer},

@@ -1,106 +1,70 @@
-from apps.authentication.api.v1.repositories.otp import OTPRepository
+import uuid
+
+from django.conf import settings
+
 from apps.authentication.api.v1.serializers.otp import (
-    OTPResendSerializer,
-    OTPSerializer,
+    OTPSendSerializer,
+    OTPVerifySerializer,
 )
 from apps.authentication.api.v1.services.user_manager import UserManager
-from apps.authentication.api.v1.utils.otp import send_verification_email, verify_code
+from apps.authentication.api.v1.utils.otp import send_otp, verify_otp
 from apps.authentication.models import User
-from apps.core.exceptions import ObjectNotFoundException, ValidationError
+from apps.core.exceptions import PermissionDeniedException
 from apps.core.services import BaseService
-from apps.notification.api.v1.repositories.notifications import NotificationRepository
-from apps.notification.models import Notification
+from apps.product.utils import merge_session_to_db, merge_session_to_db_cart
 
 
 class OTPService(BaseService):
-    def __init__(self, request):
-        super().__init__(request)
-        self.db = OTPRepository
+    def send(self, *args, **kwargs):
+        serializer = OTPSendSerializer(
+            data=self.request.data, context={"request": self.request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        resend_after = send_otp(serializer.validated_data["phone_number"])
+
+        return self.get_response_object(
+            obj={
+                "result": {
+                    "expires_in": settings.OTP_EXPIRY,
+                    "resend_after": resend_after,
+                }
+            },
+            context={"request": self.request},
+        )
 
     def verify(self, *args, **kwargs):
-        serializer = OTPSerializer(
+        serializer = OTPVerifySerializer(
             data=self.request.data, context={"request": self.request}
         )
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data.get("email")
-        otp_code = serializer.validated_data.get("otp_code")
+        phone = serializer.validated_data["phone_number"]
+        verify_otp(phone, serializer.validated_data["otp_code"])
 
-        is_valid = verify_code(email, otp_code)
-
-        if not is_valid:
-            raise ValidationError(message="Invalid or expired OTP code.")
-
-        user = User.objects.filter(email=email).first()
-        if not user:
-            raise ObjectNotFoundException(
-                message="User not found or already verified",
-                message_key="user_not_found_or_already_verified",
+        user = User.objects.filter(phone_number=phone).first()
+        is_new_user = user is None
+        if is_new_user:
+            user = User.objects.create_user(
+                username=str(uuid.uuid4()), phone_number=phone, is_verified=True
             )
-
-        user.is_verified = True
-        user.save(update_fields=["is_verified"])
-
-        NotificationRepository().create_notification(
-            user=user,
-            title_uz="Email tasdiqlandi",
-            title_ru="Электронная почта подтверждена",
-            title_en="Email Verified",
-            message_uz="Email manzilingiz muvaffaqiyatli tasdiqlandi. B2B Market'ga xush kelibsiz!",
-            message_ru="Ваш адрес электронной почты успешно подтвержден. Добро пожаловать в B2B Market!",
-            message_en="Your email has been successfully verified. Welcome to B2B Market!",
-            notification_type=Notification.NotificationType.OTHER,
-        )
-
-        token = UserManager.get_tokens_for_user(user)
-
-        return self.get_response_object(
-            obj={"result": token},
-            context={"request": self.request},
-        )
-
-    def resend(self, *args, **kwargs):
-        serializer = OTPResendSerializer(
-            data=self.request.data, context={"request": self.request}
-        )
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data.get("email")
-
-        user = User.objects.filter(email=email, is_verified=False).first()
-
-        if not user:
-            raise ObjectNotFoundException(
-                message="User not found or already verified",
-                message_key="user_not_found_or_already_verified",
+        elif user.is_blocked or not user.is_active:
+            raise PermissionDeniedException(
+                message="Your account is blocked.", message_key="user_blocked"
             )
+        elif not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=["is_verified"])
 
-        send_verification_email(email)
-
-        return self.get_response_object(
-            obj={"result": "OTP code was resent to the user"},
-            context={"request": self.request},
-        )
-
-    def verify_email(self, *args, **kwargs):
-        user = self.request.user
-        serializer = OTPSerializer(
-            data=self.request.data, context={"request": self.request}
-        )
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data.get("email")
-        otp_code = serializer.validated_data.get("otp_code")
-
-        is_valid = verify_code(email, otp_code)
-
-        if not is_valid:
-            raise ValidationError(message="Invalid or expired OTP code.")
-
-        user.email = email
-        user.save(update_fields=["email"])
+        merge_session_to_db(user, request=self.request)
+        merge_session_to_db_cart(user, request=self.request)
 
         return self.get_response_object(
-            obj={"result": "New email verified"},
+            obj={
+                "result": {
+                    **UserManager.get_tokens_for_user(user),
+                    "is_new_user": is_new_user,
+                }
+            },
             context={"request": self.request},
         )

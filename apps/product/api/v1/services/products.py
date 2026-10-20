@@ -1,15 +1,14 @@
 from rest_framework import status
 
-from apps.authentication.models import User
-from apps.company.models import CompanyMember
-from apps.core.exceptions import ObjectNotFoundException
-from apps.core.services import BaseService, ViewService
+from apps.core.services import BaseService
 from apps.product.api.v1.filters.products import ProductDynamicFilter, ProductFilter
 from apps.product.api.v1.repositories.products import ProductRepository
 from apps.product.api.v1.serializers.products import (
     GlobalSearchSerializer,
     ProductCreateUpdateSerializer,
     ProductDetailSerializer,
+    ProductImageSerializer,
+    ProductImageUploadSerializer,
     ProductListSerializer,
 )
 
@@ -20,24 +19,9 @@ class ProductService(BaseService):
         self.db = ProductRepository()
 
     def get_products(self, *args, **kwargs):
-        user = self.request.user
-        if user.role in (User.Roles.ADMIN, User.Roles.SUPER_ADMIN):
-            unfiltered_products = self.db.get_products()
-        else:
-            membership = (
-                CompanyMember.objects.select_related("company")
-                .filter(user=user)
-                .first()
-            )
-            if not membership:
-                return self.get_paginated_response(
-                    [], context={"request": self.request}
-                )
-            unfiltered_products = self.db.get_products(membership.company)
-
         filtered_products = ProductFilter(
             data=self.request.query_params,
-            queryset=unfiltered_products,
+            queryset=self.db.get_products(only_active=False),
             request=self.request,
         ).qs
         return self.get_paginated_response(
@@ -49,70 +33,84 @@ class ProductService(BaseService):
             data=self.request.data, context={"request": self.request}
         )
         serializer.is_valid(raise_exception=True)
-
-        user = self.request.user
-        owner = serializer.validated_data.pop("owner", None)
-
-        if user.role in (User.Roles.ADMIN, User.Roles.SUPER_ADMIN):
-            if not owner:
-                raise ObjectNotFoundException(message="Owner company is required")
-        else:
-            membership = (
-                CompanyMember.objects.select_related("company")
-                .filter(user=user)
-                .first()
-            )
-            # Company feature is disabled for the frontend:
-            # product can be created without a company
-            owner = membership.company if membership else None
-
-        product = serializer.save(owner=owner, creator=self.request.user)
+        product = serializer.save()
         return self.get_response_object(
-            product, ProductListSerializer, context={"request": self.request}
+            self.db.get_product(product.id, only_active=False),
+            ProductDetailSerializer,
+            context={"request": self.request},
+            status_code=status.HTTP_201_CREATED,
         )
 
     def get_product(self, *args, **kwargs):
-        product = self.db.get_product(product_id=kwargs.get("id"))
-        ViewService().register_view(self.request, product)
+        product = self.db.get_product(product_id=kwargs.get("id"), only_active=False)
         return self.get_response_object(
             product, ProductDetailSerializer, context={"request": self.request}
         )
 
-    def delete_product(self, *args, **kwargs):
+    def get_public_product(self, *args, **kwargs):
         product = self.db.get_product(product_id=kwargs.get("id"))
+        return self.get_response_object(
+            product, ProductDetailSerializer, context={"request": self.request}
+        )
+
+    def update_product(self, *args, **kwargs):
+        product = self.db.get_product(product_id=kwargs.get("id"), only_active=False)
+        serializer = ProductCreateUpdateSerializer(
+            product,
+            data=self.request.data,
+            partial=True,
+            context={"request": self.request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return self.get_response_object(
+            self.db.get_product(product.id, only_active=False),
+            ProductDetailSerializer,
+            context={"request": self.request},
+        )
+
+    def delete_product(self, *args, **kwargs):
+        product = self.db.get_product(product_id=kwargs.get("id"), only_active=False)
         product.delete()
         return self.get_response_object(
             context={"request": self.request}, status_code=status.HTTP_204_NO_CONTENT
         )
 
-    def update_product(self, *args, **kwargs):
-        from apps.product.api.v1.services.constructors import ConstructorService
+    def upload_images(self, *args, **kwargs):
+        product = self.db.get_product(product_id=kwargs.get("id"), only_active=False)
+        serializer = ProductImageUploadSerializer(
+            data={"files": self.request.FILES.getlist("files")}
+        )
+        serializer.is_valid(raise_exception=True)
+        images = self.db.add_images(product, serializer.validated_data["files"])
+        return self.get_response(
+            images,
+            ProductImageSerializer,
+            context={"request": self.request},
+            many=True,
+            status_code=status.HTTP_201_CREATED,
+        )
 
-        return ConstructorService(request=self.request).update_product_via_constructor(
-            *args, **kwargs
+    def delete_image(self, *args, **kwargs):
+        image = self.db.get_image(kwargs.get("id"), kwargs.get("image_id"))
+        image.file.delete(save=False)
+        image.delete()
+        return self.get_response_object(
+            context={"request": self.request}, status_code=status.HTTP_204_NO_CONTENT
         )
 
     def top_products(self, *args, **kwargs):
-        unfiltered_products = self.db.get_products()
-        filtered_product = ProductDynamicFilter(
+        filtered_products = ProductDynamicFilter(
             data=self.request.query_params,
-            queryset=unfiltered_products,
+            queryset=self.db.get_products(),
             request=self.request,
         ).qs
         return self.get_paginated_response(
-            filtered_product, ProductListSerializer, context={"request": self.request}
-        )
-
-    def get_public_product_detail(self, *args, **kwargs):
-        product = self.db.get_product(product_id=kwargs.get("id"))
-        ViewService().register_view(self.request, product)
-        return self.get_response_object(
-            product, ProductDetailSerializer, context={"request": self.request}
+            filtered_products, ProductListSerializer, context={"request": self.request}
         )
 
     def global_search(self, *args, **kwargs):
-        search = self.request.query_params.get("search")
-        items = self.db.get_all_items(search)
+        items = self.db.get_all_items(self.request.query_params.get("search"))
         return self.get_response_object(
             items,
             GlobalSearchSerializer,

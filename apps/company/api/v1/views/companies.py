@@ -19,11 +19,8 @@ from apps.company.api.v1.services.companies import (
     CompanyService,
 )
 from apps.core.permissions import (
-    IsAdminOrSuperAdmin,
+    IsAdmin,
     # Company draft moderation (disabled for the frontend)
-    # IsModeratorOrAdmin,
-    IsSeller,
-    # IsSuperAdmin,
 )
 # from apps.product.api.v1.serializers.products import ProductListSerializer
 
@@ -31,7 +28,7 @@ from apps.core.permissions import (
 class CompanyCreateListView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), (IsSeller | IsAdminOrSuperAdmin)()]
+            return [IsAuthenticated(), (IsAdmin)()]
         return [AllowAny()]
 
     # Company list (Список компаний) is disabled for the frontend
@@ -69,7 +66,7 @@ class CompanyCreateListView(APIView):
 class CompanyDetailUpdateDeleteView(APIView):
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [IsAuthenticated(), (IsSeller | IsAdminOrSuperAdmin)()]
+            return [IsAuthenticated(), (IsAdmin)()]
         return [AllowAny()]
 
     @swagger_auto_schema(
@@ -149,7 +146,7 @@ class CompanyDetailUpdateDeleteView(APIView):
 
 
 class SellerCompanyView(APIView):
-    permission_classes = [IsAuthenticated, IsSeller]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: CompanyDetailListSerializer},

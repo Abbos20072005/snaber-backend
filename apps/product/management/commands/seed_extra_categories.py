@@ -420,20 +420,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Run with --confirm"))
             return
 
-        from django.contrib.auth import get_user_model
-
-        from apps.company.models import Company
         from apps.product.models import (
             Attribute,
             AttributeValue,
             Category,
-            Characteristic,
             Product,
             ProductAttributeValue,
+            ProductCharacteristic,
+            ProductImage,
             Unit,
-            Variant,
-            VariantAttributeStock,
-            VariantMedia,
         )
 
         existing = set(Category.objects.values_list("code", flat=True))
@@ -443,15 +438,11 @@ class Command(BaseCommand):
             return
 
         with transaction.atomic():
-            company = Company.objects.filter(status="active").first() or Company.objects.first()
-            user = get_user_model().objects.order_by("id").first()
-
             unit_map = {u.unit: u for u in Unit.objects.all()}
             for en, ru, uz in EXTRA_UNITS:
                 unit_map[en] = Unit.objects.create(unit=en, unit_ru=ru, unit_uz=uz)
 
-            stats = {"roots": 0, "leafs": 0, "attrs": 0, "values": 0, "products": 0, "variants": 0}
-            view_seed = 500
+            stats = {"roots": 0, "leafs": 0, "attrs": 0, "values": 0, "products": 0}
 
             for root in todo:
                 root_en, root_ru, root_uz = root["n"]
@@ -495,63 +486,47 @@ class Command(BaseCommand):
 
                     for p_idx, product in enumerate(leaf["products"], start=1):
                         p_en, p_ru, p_uz = product["n"]
-                        prices = [v["price"] for v in product["variants"]]
-                        view_seed = (view_seed * 37 + 101) % 900
-                        prod = Product.objects.create(
-                            name=p_en, name_en=p_en, name_ru=p_ru, name_uz=p_uz,
-                            creator=None, owner=company, category=leaf_cat,
-                            sku=f"BM-{leaf['code']}-{p_idx:03d}".upper(),
-                            image=photo if os.path.exists(photo_path) else None,
-                            product_type=Product.ProductType.READY,
-                            price_type=Product.PriceType.RANGE
-                            if len(set(prices)) > 1 else Product.PriceType.EXACT,
-                            price_min=Decimal(min(prices)), price_max=Decimal(max(prices)),
-                            is_active=True, moq=product["moq"],
-                            moq_unit=unit_map[product["unit"]],
-                            lead_time_min=product["lead"][0], lead_time_max=product["lead"][1],
-                            average_rating=Decimal("4.5"), view_count=100 + view_seed,
-                        )
-                        stats["products"] += 1
 
+                        # A seed "variant" is a product of its own on the flat model.
                         for v_idx, variant in enumerate(product["variants"], start=1):
-                            var = Variant.objects.create(
-                                product=prod,
-                                description=f"{p_en} — option {v_idx}",
-                                description_en=f"{p_en} — option {v_idx}",
-                                description_ru=f"{p_ru} — вариант {v_idx}",
-                                description_uz=f"{p_uz} — {v_idx}-variant",
-                                sku_variant=f"{prod.sku}-V{v_idx}",
-                                price_override=Decimal(variant["price"]),
-                                moq_override=product["moq"],
+                            values = [
+                                attr_map[attr_en][1][val_en]
+                                for attr_en, val_en in variant["v"].items()
+                            ]
+                            suffix_en = ", ".join(v.value_en for v in values)
+                            suffix_ru = ", ".join(v.value_ru for v in values)
+                            suffix_uz = ", ".join(v.value_uz for v in values)
+                            name_en = f"{p_en} ({suffix_en})" if values else p_en
+                            name_ru = f"{p_ru} ({suffix_ru})" if values else p_ru
+                            name_uz = f"{p_uz} ({suffix_uz})" if values else p_uz
+                            prod = Product.objects.create(
+                                name=name_en, name_en=name_en, name_ru=name_ru, name_uz=name_uz,
+                                description=name_en, description_en=name_en,
+                                description_ru=name_ru, description_uz=name_uz,
+                                category=leaf_cat,
+                                sku=f"BM-{leaf['code']}-{p_idx:03d}-{v_idx}".upper(),
+                                unit=unit_map[product["unit"]],
+                                price=Decimal(variant["price"]),
                                 stock_quantity=variant["stock"],
-                                is_active=True, average_rating=Decimal("4.5"),
+                                is_active=True,
+                                average_rating=Decimal("4.5"),
                             )
-                            stats["variants"] += 1
+                            stats["products"] += 1
 
-                            linked = []
-                            for attr_en, val_en in variant["v"].items():
-                                attr, value_map = attr_map[attr_en]
-                                attr_value = value_map[val_en]
+                            if os.path.exists(photo_path):
+                                ProductImage.objects.create(product=prod, file=photo)
+                            for attr_value in values:
                                 ProductAttributeValue.objects.create(
-                                    product=var, attribute=attr, attribute_value=attr_value,
+                                    product=prod, attribute=attr_value.attribute,
+                                    attribute_value=attr_value,
                                 )
-                                linked.append(attr_value)
-
-                            stock = VariantAttributeStock.objects.create(
-                                variant=var, quantity=variant["stock"]
-                            )
-                            if linked:
-                                stock.attribute_values.add(*linked)
-
                             for char_name, char_value in product.get("chars", []):
-                                Characteristic.objects.create(
-                                    product_variant=var, name=char_name, value=char_value,
-                                )
-
-                            if user is not None and os.path.exists(photo_path):
-                                VariantMedia.objects.create(
-                                    user=user, product_variant=var, file=photo,
-                                    product_media_type=VariantMedia.MediaType.PHOTO,
+                                ProductCharacteristic.objects.create(
+                                    product=prod,
+                                    name=char_name, name_en=char_name,
+                                    name_ru=char_name, name_uz=char_name,
+                                    value=char_value, value_en=char_value,
+                                    value_ru=char_value, value_uz=char_value,
                                 )
 
             # Roots reuse their first child's photo.

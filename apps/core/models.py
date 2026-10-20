@@ -60,6 +60,17 @@ class AboutUsImages(CreatedUpdatedAbstractModel):
         return self.image
 
 
+class LegalClientsInfo(CreatedUpdatedAbstractModel):
+    information = RichTextField()
+
+    class Meta:
+        verbose_name_plural = "Legal Clients Info"
+        verbose_name = "Legal Clients Info"
+
+    def __str__(self):
+        return self.information
+
+
 class ObjectView(CreatedUpdatedAbstractModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()

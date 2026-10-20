@@ -8,6 +8,7 @@ from apps.product.api.v1.serializers.categories import (
     CategoryBreadcrumbHelperSerializer,
     CategoryCreateSerializer,
     CategoryListSerializer,
+    CategoryPublicDetailSerializer,
     CategoryTreeSerializer,
     CategoryUpdateSerializer,
 )
@@ -23,7 +24,7 @@ class CategoryService(BaseService):
         categories = self.db.get_public_category(category_id)
 
         return self.get_response_object(
-            categories, CategoriesListSerializer, context={"request": self.request}
+            categories, CategoryPublicDetailSerializer, context={"request": self.request}
         )
 
     def get_public_categories(self, *args, **kwargs):

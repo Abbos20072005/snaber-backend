@@ -9,26 +9,24 @@ from django_countries.fields import CountryField
 
 from apps.authentication.api.v1.services.user_manager import UserManager
 from apps.authentication.utils import validate_number
-from apps.core.currency_choices import CurrencyChoices
 from apps.core.models import CreatedUpdatedAbstractModel
 
 
 class User(CreatedUpdatedAbstractModel, AbstractBaseUser, PermissionsMixin):
     class Roles(models.TextChoices):
-        BUYER = "buyer", _("Buyer")
-        SELLER = "seller", _("Seller")
-        MODERATOR = "moderator", _("Moderator")
+        BUYER = "buyer", _("Client")
         ADMIN = "admin", _("Admin")
-        SUPER_ADMIN = "super_admin", _("Super Admin")
 
-    full_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True)
     image = models.FileField(upload_to="users/images/", null=True, blank=True)
     username = models.CharField(
         max_length=100, unique=True, default=uuid.uuid4, editable=False
     )
-    email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=14, validators=[validate_number])
-    password = models.CharField(max_length=255)
+    email = models.EmailField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(
+        max_length=14, unique=True, null=True, blank=True, validators=[validate_number]
+    )
+    password = models.CharField(max_length=255, blank=True)
     role = models.CharField(choices=Roles.choices, default=Roles.BUYER)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -40,9 +38,6 @@ class User(CreatedUpdatedAbstractModel, AbstractBaseUser, PermissionsMixin):
     )
     block_reason = models.TextField(blank=True, default="")
     country = CountryField(blank=True, null=True)
-    currency = models.CharField(
-        max_length=3, choices=CurrencyChoices.choices, default=CurrencyChoices.UZS
-    )
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []

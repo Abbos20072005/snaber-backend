@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.core.models import Contact, Faq, AboutUs
+from apps.core.models import AboutUs, Contact, Faq, LegalClientsInfo
 
 
 @admin.register(Contact)
@@ -19,4 +19,9 @@ class FaqAdmin(admin.ModelAdmin):
 
 @admin.register(AboutUs)
 class AboutUsAdmin(admin.ModelAdmin):
+    list_display = ["id", "information"]
+
+
+@admin.register(LegalClientsInfo)
+class LegalClientsInfoAdmin(admin.ModelAdmin):
     list_display = ["id", "information"]

@@ -5,8 +5,8 @@ from config import settings
 
 
 class Comment(CreatedUpdatedAbstractModel):
-    variant = models.ForeignKey(
-        "product.Variant",
+    product = models.ForeignKey(
+        "product.Product",
         on_delete=models.CASCADE,
         related_name="comments",
     )
@@ -23,13 +23,13 @@ class Comment(CreatedUpdatedAbstractModel):
         verbose_name_plural = "Comments"
         constraints = [
             models.UniqueConstraint(
-                fields=["variant", "user"],
-                name="unique_variant_user_comment",
+                fields=["product", "user"],
+                name="unique_product_user_comment",
             )
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.variant.product.name} ({self.variant.sku_variant})"
+        return f"{self.user} - {self.product.name}"
 
     def delete(self, *args, **kwargs):
         for image in self.images.all():

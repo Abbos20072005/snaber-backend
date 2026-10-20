@@ -9,13 +9,13 @@ from apps.core.api.v1.serializers.faqs import (
 from apps.core.api.v1.services.faqs import (
     FaqService,
 )
-from apps.core.permissions import IsAdminOrSuperAdmin
+from apps.core.permissions import IsAdmin
 
 
 class FaqCreateListView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
+            return [IsAuthenticated(), IsAdmin()]
         return [AllowAny()]
 
     @swagger_auto_schema(
@@ -39,7 +39,7 @@ class FaqCreateListView(APIView):
 class FaqDetailUpdateDeleteView(APIView):
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
+            return [IsAuthenticated(), IsAdmin()]
         return [AllowAny()]
 
     @swagger_auto_schema(

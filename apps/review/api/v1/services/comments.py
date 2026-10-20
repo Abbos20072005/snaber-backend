@@ -9,7 +9,7 @@ from apps.core.exceptions import (
 )
 from apps.core.services import BaseService
 from apps.order.models import Order
-from apps.product.models import Product, Variant
+from apps.product.models import Product
 from apps.review.api.v1.serializers.comments import (
     CommentCreateSerializer,
     CommentListSerializer,
@@ -22,14 +22,11 @@ from apps.review.models import Comment, CommentImage
 class CommentService(BaseService):
     def get_product_comments(self, *args, **kwargs):
         product_id = self.request.query_params.get("product")
-        variant_id = self.request.query_params.get("variant")
 
-        comments = Comment.objects.select_related("variant__product", "user")
+        comments = Comment.objects.select_related("product", "user")
 
-        if variant_id:
-            comments = comments.filter(variant_id=variant_id)
-        elif product_id:
-            comments = comments.filter(variant__product_id=product_id)
+        if product_id:
+            comments = comments.filter(product_id=product_id)
 
         comments = comments.prefetch_related("images")
         return self.get_paginated_response(
@@ -39,7 +36,7 @@ class CommentService(BaseService):
     def get_comment(self, *args, **kwargs):
         try:
             comment = (
-                Comment.objects.select_related("variant__product", "user")
+                Comment.objects.select_related("product", "user")
                 .prefetch_related("images")
                 .get(id=kwargs.get("id"))
             )
@@ -50,11 +47,11 @@ class CommentService(BaseService):
         )
 
     def get_comment_status(self, *args, **kwargs):
-        variant_id = self.request.query_params.get("variant")
+        product_id = self.request.query_params.get("product")
         user = self.request.user
 
-        if not variant_id:
-            raise MissingParamsException(message="variant parameter is required")
+        if not product_id:
+            raise MissingParamsException(message="product parameter is required")
 
         if user.is_anonymous:
             data = {
@@ -66,19 +63,18 @@ class CommentService(BaseService):
             )
 
         try:
-            variant = Variant.objects.get(id=variant_id)
-        except Variant.DoesNotExist:
-            raise ObjectNotFoundException(message="Variant not found")
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            raise ObjectNotFoundException(message="Product not found")
 
         has_purchased = Order.objects.filter(
             buyer=user,
-            status=Order.OrderStatus.ACCEPTED,
-            items__product_variant=variant,
+            items__product=product,
         ).exists()
 
         has_commented = Comment.objects.filter(
             user=user,
-            variant=variant,
+            product=product,
         ).exists()
 
         data = {
@@ -97,12 +93,11 @@ class CommentService(BaseService):
         serializer.is_valid(raise_exception=True)
 
         user = self.request.user
-        variant = serializer.validated_data["variant"]
+        product = serializer.validated_data["product"]
 
         if not Order.objects.filter(
             buyer=user,
-            status=Order.OrderStatus.ACCEPTED,
-            items__product_variant=variant,
+            items__product=product,
         ).exists():
             raise ActionNotAllowedException(
                 message="You can only comment on products you have purchased"
@@ -110,7 +105,7 @@ class CommentService(BaseService):
 
         comment = Comment.objects.create(
             user=user,
-            variant=variant,
+            product=product,
             text=serializer.validated_data["text"],
             rating=serializer.validated_data["rating"],
         )
@@ -118,10 +113,10 @@ class CommentService(BaseService):
         for image_file in serializer.validated_data.get("images", []):
             CommentImage.objects.create(comment=comment, image=image_file)
 
-        self._update_ratings(variant)
+        self._update_ratings(product)
 
         comment = (
-            Comment.objects.select_related("variant__product", "user")
+            Comment.objects.select_related("product", "user")
             .prefetch_related("images")
             .get(id=comment.id)
         )
@@ -162,10 +157,10 @@ class CommentService(BaseService):
 
         comment.save()
 
-        self._update_ratings(comment.variant)
+        self._update_ratings(comment.product)
 
         comment = (
-            Comment.objects.select_related("variant__product", "user")
+            Comment.objects.select_related("product", "user")
             .prefetch_related("images")
             .get(id=comment.id)
         )
@@ -175,7 +170,7 @@ class CommentService(BaseService):
 
     def delete_comment(self, *args, **kwargs):
         try:
-            comment = Comment.objects.select_related("variant__product").get(
+            comment = Comment.objects.select_related("product").get(
                 id=kwargs.get("id")
             )
         except Comment.DoesNotExist:
@@ -186,9 +181,9 @@ class CommentService(BaseService):
                 message="You can only delete your own comments"
             )
 
-        variant = comment.variant
+        product = comment.product
         comment.delete()
-        self._update_ratings(variant)
+        self._update_ratings(product)
 
         return self.get_response_object(
             context={"request": self.request},
@@ -196,17 +191,10 @@ class CommentService(BaseService):
         )
 
     @staticmethod
-    def _update_ratings(variant):
-        variant_avg = Comment.objects.filter(variant=variant).aggregate(Avg("rating"))[
-            "rating__avg"
-        ]
-        Variant.objects.filter(id=variant.id).update(
-            average_rating=round(variant_avg, 1) if variant_avg else 0.0
-        )
-
-        product_avg = Comment.objects.filter(
-            variant__product=variant.product
-        ).aggregate(Avg("rating"))["rating__avg"]
-        Product.objects.filter(id=variant.product_id).update(
+    def _update_ratings(product):
+        product_avg = Comment.objects.filter(product=product).aggregate(
+            Avg("rating")
+        )["rating__avg"]
+        Product.objects.filter(id=product.id).update(
             average_rating=round(product_avg, 1) if product_avg else 0.0
         )

@@ -57,10 +57,10 @@ class CartCheckoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        responses={201: OrderListSerializer(many=True)},
+        responses={201: OrderListSerializer},
         tags=["Cart"],
         operation_description=(
-            "Checkout: create orders grouped by company from cart items"
+            "Checkout: create an order from cart items"
         ),
     )
     def post(self, request, *args, **kwargs):

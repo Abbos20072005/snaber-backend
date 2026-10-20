@@ -1894,37 +1894,25 @@ class Command(BaseCommand):
             )
             return
 
-        from django.contrib.auth import get_user_model
-
-        from apps.company.models import Company
-        from apps.order.models import Order, OrderItem, RFQOrderItemAttribute
+        from apps.order.models import Order, OrderItem
         from apps.product.models import (
             Attribute,
             AttributeValue,
             Cart,
             CartItem,
-            Characteristic,
-            CharacteristicConstructor,
-            Favourite,
             Category,
+            Favourite,
             Product,
             ProductAttributeValue,
-            ProductAttributeValueConstructor,
-            ProductConstructor,
+            ProductCharacteristic,
+            ProductImage,
             Unit,
-            Variant,
-            VariantAttributeStock,
-            VariantAttributeStockConstructor,
-            VariantConstructor,
-            VariantMedia,
-            VariantMediaConstructor,
         )
         from apps.review.models import Comment, CommentImage
 
         with transaction.atomic():
             wiped = {}
             # Dependents first (leaf -> root).
-            wiped["rfq_attributes"] = RFQOrderItemAttribute.objects.all().delete()[0]
             wiped["order_items"] = OrderItem.objects.all().delete()[0]
             wiped["orders"] = Order.objects.all().delete()[0]
             wiped["comment_images"] = CommentImage.objects.all().delete()[0]
@@ -1932,47 +1920,18 @@ class Command(BaseCommand):
             wiped["cart_items"] = CartItem.objects.all().delete()[0]
             wiped["carts"] = Cart.objects.all().delete()[0]
             wiped["favourites"] = Favourite.objects.all().delete()[0]
-            wiped["pav_constructors"] = (
-                ProductAttributeValueConstructor.objects.all().delete()[0]
-            )
-            wiped["media_constructors"] = (
-                VariantMediaConstructor.objects.all().delete()[0]
-            )
-            wiped["char_constructors"] = (
-                CharacteristicConstructor.objects.all().delete()[0]
-            )
-            wiped["stock_constructors"] = (
-                VariantAttributeStockConstructor.objects.all().delete()[0]
-            )
-            wiped["variant_constructors"] = (
-                VariantConstructor.objects.all().delete()[0]
-            )
-            wiped["product_constructors"] = (
-                ProductConstructor.objects.all().delete()[0]
-            )
-            wiped["stocks"] = VariantAttributeStock.objects.all().delete()[0]
-            wiped["pav"] = ProductAttributeValue.objects.all().delete()[0]
-            wiped["characteristics"] = Characteristic.objects.all().delete()[0]
-            wiped["medias"] = VariantMedia.objects.all().delete()[0]
-            wiped["variants"] = Variant.objects.all().delete()[0]
             wiped["products"] = Product.objects.all().delete()[0]
             wiped["attribute_values"] = AttributeValue.objects.all().delete()[0]
             wiped["attributes"] = Attribute.objects.all().delete()[0]
             wiped["categories"] = Category.objects.all().delete()[0]
             wiped["units"] = Unit.objects.all().delete()[0]
 
-            company = Company.objects.filter(status="active").first() or Company.objects.first()
-            if company is None:
-                raise RuntimeError("No Company found: seed at least one company first.")
-            user = get_user_model().objects.order_by("id").first()
-
             unit_map = {}
             for en, ru, uz in UNITS:
                 unit_map[en] = Unit.objects.create(unit=en, unit_ru=ru, unit_uz=uz)
 
-            stats = {"roots": 0, "leafs": 0, "attrs": 0, "values": 0, "products": 0, "variants": 0}
+            stats = {"roots": 0, "leafs": 0, "attrs": 0, "values": 0, "products": 0}
             image_idx = 0
-            view_seed = 0
 
             for root in ROOTS:
                 root_en, root_ru, root_uz = root["n"]
@@ -2037,85 +1996,61 @@ class Command(BaseCommand):
 
                     for p_idx, product in enumerate(leaf["products"], start=1):
                         p_en, p_ru, p_uz = product["n"]
-                        prices = [v["price"] for v in product["variants"]]
-                        price_type = (
-                            Product.PriceType.RANGE
-                            if len(set(prices)) > 1
-                            else Product.PriceType.EXACT
-                        )
-                        view_seed = (view_seed * 37 + 101) % 900
-                        prod = Product.objects.create(
-                            name=p_en,
-                            name_en=p_en,
-                            name_ru=p_ru,
-                            name_uz=p_uz,
-                            creator=None,
-                            owner=company,
-                            category=leaf_cat,
-                            sku=f"BM-{leaf['code']}-{p_idx:03d}".upper(),
-                            image=PRODUCT_IMAGE_POOL[
-                                (stats["products"]) % len(PRODUCT_IMAGE_POOL)
-                            ],
-                            product_type=Product.ProductType.READY,
-                            price_type=price_type,
-                            price_min=Decimal(min(prices)),
-                            price_max=Decimal(max(prices)),
-                            is_active=True,
-                            moq=product["moq"],
-                            moq_unit=unit_map[product["unit"]],
-                            lead_time_min=product["lead"][0],
-                            lead_time_max=product["lead"][1],
-                            average_rating=Decimal("4.5"),
-                            view_count=100 + view_seed,
-                        )
-                        stats["products"] += 1
 
+                        # A seed "variant" is a product of its own on the flat model.
                         for v_idx, variant in enumerate(product["variants"], start=1):
-                            var = Variant.objects.create(
-                                product=prod,
-                                description=f"{p_en} — option {v_idx}",
-                                description_en=f"{p_en} — option {v_idx}",
-                                description_ru=f"{p_ru} — вариант {v_idx}",
-                                description_uz=f"{p_uz} — {v_idx}-variant",
-                                sku_variant=f"{prod.sku}-V{v_idx}",
-                                price_override=Decimal(variant["price"]),
-                                moq_override=product["moq"],
+                            values = [
+                                attr_map[attr_en][1][val_en]
+                                for attr_en, val_en in variant["v"].items()
+                            ]
+                            suffix_en = ", ".join(v.value_en for v in values)
+                            suffix_ru = ", ".join(v.value_ru for v in values)
+                            suffix_uz = ", ".join(v.value_uz for v in values)
+                            name_en = f"{p_en} ({suffix_en})" if values else p_en
+                            name_ru = f"{p_ru} ({suffix_ru})" if values else p_ru
+                            name_uz = f"{p_uz} ({suffix_uz})" if values else p_uz
+                            prod = Product.objects.create(
+                                name=name_en,
+                                name_en=name_en,
+                                name_ru=name_ru,
+                                name_uz=name_uz,
+                                description=name_en,
+                                description_en=name_en,
+                                description_ru=name_ru,
+                                description_uz=name_uz,
+                                category=leaf_cat,
+                                sku=f"BM-{leaf['code']}-{p_idx:03d}-{v_idx}".upper(),
+                                unit=unit_map[product["unit"]],
+                                price=Decimal(variant["price"]),
                                 stock_quantity=variant["stock"],
                                 is_active=True,
                                 average_rating=Decimal("4.5"),
                             )
-                            stats["variants"] += 1
+                            stats["products"] += 1
 
-                            linked_values = []
-                            for attr_en, val_en in variant["v"].items():
-                                attr, value_map = attr_map[attr_en]
-                                attr_value = value_map[val_en]
+                            ProductImage.objects.create(
+                                product=prod,
+                                file=PRODUCT_IMAGE_POOL[
+                                    stats["products"] % len(PRODUCT_IMAGE_POOL)
+                                ],
+                            )
+                            for attr_value in values:
                                 ProductAttributeValue.objects.create(
-                                    product=var,
-                                    attribute=attr,
+                                    product=prod,
+                                    attribute=attr_value.attribute,
                                     attribute_value=attr_value,
                                 )
-                                linked_values.append(attr_value)
-
-                            stock = VariantAttributeStock.objects.create(
-                                variant=var, quantity=variant["stock"]
-                            )
-                            if linked_values:
-                                stock.attribute_values.add(*linked_values)
-
                             for char_name, char_value in product.get("chars", []):
-                                Characteristic.objects.create(
-                                    product_variant=var,
+                                ProductCharacteristic.objects.create(
+                                    product=prod,
                                     name=char_name,
+                                    name_en=char_name,
+                                    name_ru=char_name,
+                                    name_uz=char_name,
                                     value=char_value,
-                                )
-
-                            if user is not None:
-                                VariantMedia.objects.create(
-                                    user=user,
-                                    product_variant=var,
-                                    file=prod.image,
-                                    product_media_type=VariantMedia.MediaType.PHOTO,
+                                    value_en=char_value,
+                                    value_ru=char_value,
+                                    value_uz=char_value,
                                 )
 
         self.stdout.write(self.style.SUCCESS(f"Wiped: {wiped}"))
@@ -2124,7 +2059,6 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Done: {stats['roots']} root / {stats['leafs']} leaf categories, "
                 f"{stats['attrs']} attributes ({stats['values']} values), "
-                f"{stats['products']} products, {stats['variants']} variants "
-                f"for company '{company.name}'."
+                f"{stats['products']} products."
             )
         )

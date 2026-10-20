@@ -8,10 +8,7 @@ from apps.core.permissions import IsBuyer
 from apps.dashboard.api.v1.serializers.buyers import (
     BuyerKpiSerializer,
     BuyerPurchaseMomentumSerializer,
-    BuyerStatusMixSerializer,
-    BuyerOrderTypeSplitSerializer,
     BuyerRecentActivitySerializer,
-    BuyerSummarySerializer,
 )
 from apps.dashboard.api.v1.services.buyers import BuyerService
 
@@ -42,32 +39,6 @@ class BuyerPurchaseMomentumAPIView(APIView):
         return data
 
 
-class BuyerStatusMixAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsBuyer]
-
-    @swagger_auto_schema(
-        tags=["Buyer Dashboard"],
-        operation_summary="Buyer order status mix",
-        responses={200: BuyerStatusMixSerializer(many=True)},
-    )
-    def get(self, request, *args, **kwargs):
-        data = BuyerService(request=request).get_status_mix(*args, **kwargs)
-        return data
-
-
-class BuyerOrderTypeSplitAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsBuyer]
-
-    @swagger_auto_schema(
-        tags=["Buyer Dashboard"],
-        operation_summary="Buyer order type split",
-        responses={200: BuyerOrderTypeSplitSerializer(many=True)},
-    )
-    def get(self, request, *args, **kwargs):
-        data = BuyerService(request=request).get_order_type_split(*args, **kwargs)
-        return data
-
-
 class BuyerRecentBuyingActivityAPIView(APIView):
     permission_classes = [IsAuthenticated, IsBuyer]
 
@@ -78,17 +49,4 @@ class BuyerRecentBuyingActivityAPIView(APIView):
     )
     def get(self, request, *args, **kwargs):
         data = BuyerService(request=request).get_recent_buying_activity(*args, **kwargs)
-        return data
-
-
-class BuyerSummaryAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsBuyer]
-
-    @swagger_auto_schema(
-        tags=["Buyer Dashboard"],
-        operation_summary="Buyer dashboard summary",
-        responses={200: BuyerSummarySerializer()},
-    )
-    def get(self, request, *args, **kwargs):
-        data = BuyerService(request=request).get_summary(*args, **kwargs)
         return data

@@ -8,7 +8,7 @@ from apps.core.exceptions import (
 from apps.core.services import BaseService
 from apps.core.utils import set_guest_session_cookie
 from apps.order.api.v1.repositories.order import OrderRepository
-from apps.order.api.v1.utils.order import detect_order_type
+from apps.order.api.v1.serializers.order import OrderListSerializer
 from apps.product.api.v1.repositories.cart import CartRepository
 from apps.product.api.v1.serializers.cart import (
     CartCreateSerializer,
@@ -28,11 +28,6 @@ class CartService(BaseService):
         self.order_db = OrderRepository()
         self.product_id = product_id
 
-    def _get_available_quantity(self, product_variant, attribute_stock=None):
-        if attribute_stock:
-            return attribute_stock.quantity
-        return product_variant.stock_quantity
-
     def post(self, *args, **kwargs):
         serializer = CartCreateSerializer(
             data=self.request.data,
@@ -40,27 +35,8 @@ class CartService(BaseService):
         )
         serializer.is_valid(raise_exception=True)
 
-        product_variant = serializer.validated_data.get("product")
+        product = serializer.validated_data.get("product")
         quantity = serializer.validated_data.get("quantity")
-        attribute_stock = serializer.validated_data.get("attribute_stock")
-        deadline = serializer.validated_data.get("deadline")
-
-        raw_attributes = serializer.validated_data.get("attributes", [])
-        attributes = [
-            {
-                "attribute": a["attribute"].id,
-                "value_option": a["value_option"].id if a.get("value_option") else None,
-                "value": a.get("value", ""),
-            }
-            for a in raw_attributes
-        ]
-
-        if attribute_stock and attribute_stock.variant != product_variant:
-            raise ObjectIsNotAvailableException(
-                "Attribute stock does not belong to this variant"
-            )
-
-        available = self._get_available_quantity(product_variant, attribute_stock)
 
         if self.request.user.is_authenticated:
             cart = self.db.get_cart(user=self.request.user.id)
@@ -75,59 +51,25 @@ class CartService(BaseService):
             if not cart:
                 cart = self.db.create_cart(session_key=session_key)
 
-        cart_filter = {"cart": cart, "product": product_variant}
-        if attribute_stock:
-            cart_filter["attribute_stock"] = attribute_stock
-
-        # Find existing item with matching attributes to avoid overwriting
-        # different variant selections (e.g. size L vs size M) on the same product
-        existing_item = None
-        normalized_new = sorted(
-            attributes,
-            key=lambda a: (
-                a.get("attribute", 0),
-                a.get("value_option") or 0,
-                a.get("value", ""),
-            ),
-        )
-        for item in CartItem.objects.filter(**cart_filter):
-            normalized_existing = sorted(
-                item.attributes or [],
-                key=lambda a: (
-                    a.get("attribute", 0),
-                    a.get("value_option") or 0,
-                    a.get("value", ""),
-                ),
-            )
-            if normalized_new == normalized_existing:
-                existing_item = item
-                break
+        existing_item = CartItem.objects.filter(cart=cart, product=product).first()
 
         if existing_item:
             if quantity <= 0:
                 existing_item.delete()
                 cart_item = None
             else:
-                if not product_variant or quantity > available:
+                if quantity > product.stock_quantity:
                     raise ObjectIsNotAvailableException("Object is not available")
                 existing_item.quantity = quantity
-                existing_item.attributes = attributes
-                existing_item.deadline = deadline
-                existing_item.save(update_fields=["quantity", "attributes", "deadline"])
+                existing_item.save(update_fields=["quantity"])
                 cart_item = existing_item
         else:
             if quantity <= 0:
                 raise ObjectNotFoundException("Object not found in cart")
-            if not product_variant or quantity > available:
+            if quantity > product.stock_quantity:
                 raise ObjectIsNotAvailableException("Object is not available")
             cart_item = self.db.create_cart_item(
-                cart=cart,
-                product=product_variant,
-                quantity=quantity,
-                company=product_variant.product.owner,
-                attribute_stock=attribute_stock,
-                attributes=attributes,
-                deadline=deadline,
+                cart=cart, product=product, quantity=quantity
             )
 
         response = self.get_response_object(
@@ -144,25 +86,17 @@ class CartService(BaseService):
 
     def get(self, *args, **kwargs):
         if self.request.user.is_authenticated:
-            grouped = self.db.get_cart_items_grouped_by_company(user=self.request.user)
+            items = self.db.get_cart_items(user=self.request.user)
         else:
-            session_key = self.request.COOKIES.get("sessionid")
-            grouped = self.db.get_cart_items_grouped_by_company(session_key=session_key)
-
-        groups_list = [
-            {"company": company, "items": items} for company, items in grouped.items()
-        ]
-        all_items = [item for items in grouped.values() for item in items]
-        total_amount = sum(get_cart_item_total_price(item) or 0 for item in all_items)
-        products = len({item.product_id for item in all_items if item.product_id})
-        companies = len(grouped)
+            items = self.db.get_cart_items(
+                session_key=self.request.COOKIES.get("sessionid")
+            )
 
         return self.get_response_object(
             {
-                "groups": groups_list,
-                "total_amount": total_amount,
-                "products": products,
-                "companies": companies,
+                "items": items,
+                "total_amount": sum(get_cart_item_total_price(item) for item in items),
+                "products": len(items),
             },
             CartResponseSerializer,
             context={"request": self.request},
@@ -193,9 +127,6 @@ class CartService(BaseService):
 
     def patch(self, *args, **kwargs):
         quantity = self.request.data.get("quantity")
-        product_variant = self.db.get_product_variant_by_product_id(
-            self.product_id,
-        )
 
         if self.request.user.is_authenticated:
             cart_item = self.db.get_cart_by_product(
@@ -211,14 +142,7 @@ class CartService(BaseService):
         if not cart_item:
             raise ObjectNotFoundException("Object not found")
 
-        if not product_variant:
-            raise ObjectIsNotAvailableException("Object is not available")
-
-        available = self._get_available_quantity(
-            product_variant, cart_item.attribute_stock
-        )
-
-        if int(quantity) > available:
+        if int(quantity) > cart_item.product.stock_quantity:
             raise ObjectIsNotAvailableException("Object is not available")
 
         cart_item = self.db.update_cart_quantity(cart_item, quantity)
@@ -231,50 +155,19 @@ class CartService(BaseService):
         )
 
     def checkout(self, *args, **kwargs):
-        grouped = self.db.get_cart_items_grouped_by_company(user=self.request.user)
+        items = self.db.get_cart_items(user=self.request.user)
 
-        if not grouped:
+        if not items:
             raise ObjectNotFoundException("Cart is empty")
 
-        order_ids = []
-        for company, items in grouped.items():
-            items_data = []
-            for item in items:
-                if item.product:
-                    item_data = {
-                        "product_variant": item.product,
-                        "quantity": item.quantity,
-                    }
-                    if item.attribute_stock:
-                        item_data["attribute_stock"] = item.attribute_stock
-                    if item.attributes:
-                        item_data["attributes"] = item.attributes
-                    items_data.append(item_data)
-
-            if items_data:
-                order_type = detect_order_type(items_data)
-                order = self.order_db.create_order_from_cart_group(
-                    buyer=self.request.user,
-                    company=company,
-                    items_data=items_data,
-                    order_type=order_type,
-                )
-                # Chat center (conversation creation) is disabled for the frontend
-                # self._create_order_conversation(order)
-                order_ids.append(order.id)
-
+        order = self.order_db.create_order_from_cart(
+            buyer=self.request.user, cart_items=items
+        )
         self.db.clear_cart(user=self.request.user)
 
-        from apps.order.api.v1.repositories.order import OrderRepository
-
-        orders = OrderRepository().get_all_by_ids(order_ids)
-
-        from apps.order.api.v1.serializers.order import OrderListSerializer
-
         return self.get_response(
-            orders,
+            self.order_db.get_by_id(order.id),
             OrderListSerializer,
             context={"request": self.request},
-            many=True,
             status_code=status.HTTP_201_CREATED,
         )

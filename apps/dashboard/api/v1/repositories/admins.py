@@ -13,30 +13,19 @@ from django.db.models.functions import Coalesce, ExtractMonth, TruncDate
 from django.utils import timezone
 
 from apps.authentication.models import User
-from apps.order.models import Order
+from apps.order.models import Order, OrderItem
 
 
 class AdminRepository:
     def get_today_orders_count(self):
         today = timezone.now().date()
-        return Order.objects.filter(
-            created_at__date=today,
-            order_type=Order.OrderType.READY,
-        ).count()
-
-    def get_today_rfq_orders_count(self):
-        today = timezone.now().date()
-        return Order.objects.filter(
-            created_at__date=today,
-            order_type=Order.OrderType.RFQ,
-        ).count()
+        return Order.objects.filter(created_at__date=today).count()
 
     def get_last_30_days_stats(self):
         since = timezone.now().date() - timezone.timedelta(days=30)
         decimal_field = DecimalField(max_digits=20, decimal_places=2)
         line_total = ExpressionWrapper(
-            Coalesce(F("items__product_variant__price_override"), Value(0))
-            * F("items__quantity"),
+            F("items__price") * F("items__quantity"),
             output_field=decimal_field,
         )
 
@@ -46,21 +35,17 @@ class AdminRepository:
         )
 
         user_stats = User.objects.filter(created_at__date__gte=since).aggregate(
-            verified_sellers_count=Count(
-                "id", filter=Q(role=User.Roles.SELLER, is_verified=True)
-            ),
             total_users_count=Count("id"),
         )
 
         return {**order_stats, **user_stats}
 
     def get_user_counts(self):
-        return User.objects.aggregate(
-            sellers=Count("id", filter=Q(role=User.Roles.SELLER)),
+        counts = User.objects.aggregate(
             buyers=Count("id", filter=Q(role=User.Roles.BUYER)),
-            moderators=Count("id", filter=Q(role=User.Roles.MODERATOR)),
             admins=Count("id", filter=Q(role=User.Roles.ADMIN)),
         )
+        return {**counts, "total_users": counts["buyers"] + counts["admins"]}
 
     def get_current_week_joined_users(self):
         today = timezone.now().date()
@@ -89,30 +74,22 @@ class AdminRepository:
             .values("day", "count")
         )
 
-    def get_rfq_orders_count_by_status(self):
-        return Order.objects.filter(order_type=Order.OrderType.RFQ).aggregate(
-            **{
-                status: Count("id", filter=Q(status=status))
-                for status, _ in Order.OrderStatus.choices
-            }
-        )
-
     def get_orders_count_by_category(self):
         top_names = (
-            Order.objects.filter(items__category__isnull=False)
-            .values("items__category__name")
+            Order.objects.filter(items__product__category__isnull=False)
+            .values("items__product__category__name")
             .annotate(counts=Count("id", distinct=True))
             .order_by("-counts")
-            .values("items__category__name")[:3]
+            .values("items__product__category__name")[:3]
         )
 
         return list(
-            Order.objects.filter(items__category__isnull=False)
+            Order.objects.filter(items__product__category__isnull=False)
             .annotate(
                 category_name=Case(
                     When(
-                        items__category__name__in=top_names,
-                        then=F("items__category__name"),
+                        items__product__category__name__in=top_names,
+                        then=F("items__product__category__name"),
                     ),
                     default=Value("Others"),
                 )
@@ -128,19 +105,16 @@ class AdminRepository:
             )
         )
 
-    def get_top_companies_by_orders(self):
+    def get_top_products_by_orders(self):
         decimal_field = DecimalField(max_digits=20, decimal_places=2)
         line_total = ExpressionWrapper(
-            Coalesce(F("items__product_variant__price_override"), Value(0))
-            * F("items__quantity"),
+            F("price") * F("quantity"),
             output_field=decimal_field,
         )
         return list(
-            Order.objects.values(
-                company_name=F("company__name"),
-            )
+            OrderItem.objects.values(product_name=F("product__name"))
             .annotate(
-                orders_count=Count("id"),
+                orders_count=Count("order", distinct=True),
                 orders_total=Coalesce(
                     Sum(line_total), Value(0), output_field=decimal_field
                 ),
@@ -152,8 +126,7 @@ class AdminRepository:
         now = timezone.now()
         decimal_field = DecimalField(max_digits=20, decimal_places=2)
         line_total = ExpressionWrapper(
-            Coalesce(F("items__product_variant__price_override"), Value(0))
-            * F("items__quantity"),
+            F("items__price") * F("items__quantity"),
             output_field=decimal_field,
         )
 

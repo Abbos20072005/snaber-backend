@@ -9,11 +9,11 @@ from apps.company.api.v1.serializers.certificates import (
 from apps.company.api.v1.services.certificates import (
     CompanyCertificateService,
 )
-from apps.core.permissions import IsAdminOrSuperAdmin, IsSeller
+from apps.core.permissions import IsAdmin
 
 
 class CompanyCertificateCreateView(APIView):
-    permission_classes = [IsAuthenticated, IsSeller | IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         request_body=CompanyCertificateCreateUpdateSerializer,
@@ -44,7 +44,7 @@ class CompanyCertificateListView(APIView):
 class CompanyCertificateDetailUpdateDeleteView(APIView):
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [IsAuthenticated(), (IsSeller | IsAdminOrSuperAdmin)()]
+            return [IsAuthenticated(), (IsAdmin)()]
         return [AllowAny()]
 
     @swagger_auto_schema(

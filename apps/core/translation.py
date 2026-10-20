@@ -1,6 +1,6 @@
 from modeltranslation.translator import TranslationOptions, translator
 
-from apps.core.models import Faq, AboutUs
+from apps.core.models import AboutUs, Faq, LegalClientsInfo
 
 
 class FaqTranslationOptions(TranslationOptions):
@@ -15,3 +15,10 @@ class AboutUsTranslationOptions(TranslationOptions):
 
 
 translator.register(AboutUs, AboutUsTranslationOptions)
+
+
+class LegalClientsInfoTranslationOptions(TranslationOptions):
+    fields = ("information",)
+
+
+translator.register(LegalClientsInfo, LegalClientsInfoTranslationOptions)

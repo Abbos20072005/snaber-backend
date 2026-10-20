@@ -37,8 +37,14 @@ class AttributeRepository:
     def get_filterable_attributes(self, category_id=None):
         if not category_id:
             return Attribute.objects.none()
+        # Filters are defined on the subcategory, so deeper levels inherit them.
+        ancestor_ids = []
+        category = Category.objects.filter(id=category_id).first()
+        while category:
+            ancestor_ids.append(category.id)
+            category = category.parent
         return Attribute.objects.filter(
-            is_filterable=True, category_id=category_id
+            is_filterable=True, category_id__in=ancestor_ids
         )
 
     def get_price_range(self, category_id=None):
@@ -46,5 +52,5 @@ class AttributeRepository:
         if category_id:
             descendant_ids = self._get_category_ids(category_id)
             qs = qs.filter(category_id__in=descendant_ids)
-        result = qs.aggregate(min_price=Min("price_min"), max_price=Max("price_min"))
+        result = qs.aggregate(min_price=Min("price"), max_price=Max("price"))
         return result.get("min_price") or 0, result.get("max_price") or 0

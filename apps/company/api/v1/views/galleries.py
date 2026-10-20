@@ -9,11 +9,11 @@ from apps.company.api.v1.serializers.galleries import (
 from apps.company.api.v1.services.galleries import (
     CompanyGalleryService,
 )
-from apps.core.permissions import IsAdminOrSuperAdmin, IsSeller
+from apps.core.permissions import IsAdmin
 
 
 class CompanyGalleryCreateView(APIView):
-    permission_classes = [IsAuthenticated, IsSeller | IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         request_body=CompanyGalleryCreateUpdateSerializer,
@@ -42,7 +42,7 @@ class CompanyGalleryListView(APIView):
 class CompanyGalleryDetailUpdateDeleteView(APIView):
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [IsAuthenticated(), (IsSeller | IsAdminOrSuperAdmin)()]
+            return [IsAuthenticated(), (IsAdmin)()]
         return [AllowAny()]
 
     @swagger_auto_schema(

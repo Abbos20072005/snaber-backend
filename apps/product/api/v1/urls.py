@@ -18,19 +18,14 @@ from apps.product.api.v1.views.categories import (
     CategoryPublicBreadcrumbView,
     CategoryPublicDetailView,
 )
-from apps.product.api.v1.views.constructors import (
-    ConstructorDetailView,
-    ConstructorListCreateView,
-    DraftProductDetailView,
-    DraftProductView,
-    VariantConstructorCreateView,
-    VariantConstructorDetailView,
-)
 from apps.product.api.v1.views.favourite import FavouriteAPIView
 from apps.product.api.v1.views.products import (
     GlobalSearchView,
     ProductDetailUpdateDeleteView,
     ProductDetailView,
+    ProductImageDeleteView,
+    ProductImageView,
+    ProductListCreateView,
     ProductTopView,
 )
 from apps.product.api.v1.views.units import (
@@ -40,10 +35,6 @@ from apps.product.api.v1.views.units import (
 from apps.product.api.v1.views.values import (
     AttributeValueListCreateView,
     AttributeValueUpdateDeleteView,
-)
-from apps.product.api.v1.views.variants import (
-    ProductVariantUpdateDeleteDetailView,
-    VariantRFQAttributesView,
 )
 
 urlpatterns = [
@@ -78,49 +69,21 @@ urlpatterns = [
         CategoryPublicBreadcrumbView.as_view(),
         name="public-category-breadcrumb",
     ),
-    # products (constructor-based)
-    path("", ConstructorListCreateView.as_view(), name="product-list-create"),
+    # products
+    path("", ProductListCreateView.as_view(), name="product-list-create"),
     path(
         "<int:id>/",
         ProductDetailUpdateDeleteView.as_view(),
         name="product-detail-update-delete",
     ),
+    path("<int:id>/images/", ProductImageView.as_view(), name="product-image-upload"),
+    path(
+        "<int:id>/images/<int:image_id>/",
+        ProductImageDeleteView.as_view(),
+        name="product-image-delete",
+    ),
     path("public/", ProductTopView.as_view(), name="product-public"),
     path("public/<int:id>/", ProductDetailView.as_view(), name="product-detail"),
-    # variants (constructor-based)
-    path(
-        "variants/",
-        VariantConstructorCreateView.as_view(),
-        name="product-variant-create",
-    ),
-    path(
-        "variants/<int:id>/",
-        ProductVariantUpdateDeleteDetailView.as_view(),
-        name="product-variant-update-delete-detail",
-    ),
-    path(
-        "variants/<int:id>/rfq-attributes/",
-        VariantRFQAttributesView.as_view(),
-        name="variant-rfq-attributes",
-    ),
-    # constructor detail
-    path(
-        "constructor/<int:id>/",
-        ConstructorDetailView.as_view(),
-        name="constructor-detail-delete",
-    ),
-    path(
-        "constructor/variant/<int:id>/",
-        VariantConstructorDetailView.as_view(),
-        name="constructor-variant-delete",
-    ),
-    # draft / review
-    path("draft/products/", DraftProductView.as_view(), name="draft-products"),
-    path(
-        "draft/product/<int:id>/",
-        DraftProductDetailView.as_view(),
-        name="draft-product-patch",
-    ),
     # favourite and cart
     path("favourite/", FavouriteAPIView.as_view(), name="favourite"),
     path("cart/", CartAPIView.as_view(), name="cart"),

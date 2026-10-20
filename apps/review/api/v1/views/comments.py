@@ -23,18 +23,12 @@ class CommentListCreateView(APIView):
         responses={200: CommentListSerializer(many=True)},
         tags=["Comment"],
         operation_description="API to list comments. "
-        "Use ?product=<id> or ?variant=<id> to filter.",
+        "Use ?product=<id> to filter.",
         manual_parameters=[
-            openapi.Parameter(
-                name="variant",
-                in_=openapi.IN_QUERY,
-                description="Filter comments by variant ID",
-                type=openapi.TYPE_INTEGER,
-            ),
             openapi.Parameter(
                 name="product",
                 in_=openapi.IN_QUERY,
-                description="Filter comments by product ID (all variants)",
+                description="Filter comments by product ID",
                 type=openapi.TYPE_INTEGER,
             ),
         ],
@@ -95,12 +89,12 @@ class CommentStatusView(APIView):
         responses={200: CommentStatusSerializer},
         tags=["Comment"],
         operation_description="API to check if the authenticated user "
-        "can comment on a variant. Use ?variant=<id>",
+        "can comment on a product. Use ?product=<id>",
         manual_parameters=[
             openapi.Parameter(
-                name="variant",
+                name="product",
                 in_=openapi.IN_QUERY,
-                description="Variant ID to check comment status for",
+                description="Product ID to check comment status for",
                 type=openapi.TYPE_INTEGER,
             ),
         ],

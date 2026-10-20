@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, IntegerField, Value
 
 from apps.authentication.models import User
 from apps.company.api.v1.filters.companies import RegionFilter, IndustryFilter
@@ -13,7 +13,7 @@ class CompanyRepository:
 
     def get_companies(self):
         return Company.objects.annotate(
-            order_counts=Count("company_orders", distinct=True),
+            order_counts=Value(0, output_field=IntegerField()),
             member_counts=Count("members", distinct=True),
         )
 
@@ -21,7 +21,7 @@ class CompanyRepository:
         return {
             "companies": Company.objects.count(),
             "products": Product.objects.count(),
-            "users": User.objects.count(),
+                        "users": User.objects.count(),
         }
 
     def get_company(self, company_id):
@@ -49,16 +49,6 @@ class CompanyRepository:
                 message_key="company_not_found",
             )
         return company
-
-    def get_company_products(self, company_id):
-        if not Company.objects.filter(id=company_id).exists():
-            raise ObjectNotFoundException(
-                message="Company not found",
-                message_key="company_not_found",
-            )
-
-        product = Product.objects.filter(owner_id=company_id, is_active=True)
-        return product
 
     def get_seller_company(self, user):
         if user.role != "seller":
@@ -104,7 +94,7 @@ class CompanyRepository:
 
     def get_public_companies(self):
         return Company.objects.filter(status=Company.CompanyStatus.ACTIVE).annotate(
-            order_counts=Count("company_orders", distinct=True),
+            order_counts=Value(0, output_field=IntegerField()),
             member_counts=Count("members", distinct=True),
         )
 

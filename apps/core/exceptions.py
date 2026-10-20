@@ -91,6 +91,12 @@ class TryAgainException(BaseAPIException):
     default_message_key = "try_again"
 
 
+class TooManyRequestsException(BaseAPIException):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    default_message = _("Too many requests")
+    default_message_key = "too_many_requests"
+
+
 class BaseUnauthorizedException(BaseAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_message = _("Unauthorized")

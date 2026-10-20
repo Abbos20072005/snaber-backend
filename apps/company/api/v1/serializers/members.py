@@ -57,7 +57,7 @@ class CompanyMemberCreateSerializer(serializers.Serializer):
             email=email,
             phone_number=phone_number,
             password=make_password(password),
-            role=User.Roles.SELLER,
+            role=User.Roles.ADMIN,
             is_verified=True,
         )
 

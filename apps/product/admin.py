@@ -6,20 +6,12 @@ from apps.product.models import (
     Cart,
     CartItem,
     Category,
-    Characteristic,
-    CharacteristicConstructor,
     Favourite,
     Product,
     ProductAttributeValue,
-    ProductAttributeValueConstructor,
-    ProductConstructor,
+    ProductCharacteristic,
+    ProductImage,
     Unit,
-    Variant,
-    VariantAttributeStock,
-    VariantAttributeStockConstructor,
-    VariantConstructor,
-    VariantMedia,
-    VariantMediaConstructor,
 )
 
 
@@ -37,32 +29,41 @@ class UnitAdmin(admin.ModelAdmin):
     list_filter = ("unit",)
 
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "owner", "category", "price_type", "is_active")
-    list_filter = ("is_active", "price_type", "product_type")
-    search_fields = ("name", "sku")
-
-
-class VariantMediaInline(admin.TabularInline):
-    model = VariantMedia
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
     extra = 1
 
 
-@admin.register(Variant)
-class VariantAdmin(admin.ModelAdmin):
+class ProductCharacteristicInline(admin.TabularInline):
+    model = ProductCharacteristic
+    extra = 1
+
+
+class ProductAttributeValueInline(admin.TabularInline):
+    model = ProductAttributeValue
+    extra = 0
+    autocomplete_fields = ["attribute", "attribute_value"]
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "product",
-        "sku_variant",
-        "price_override",
+        "name",
+        "category",
+        "sku",
+        "price",
+        "discount_percent",
         "stock_quantity",
         "is_active",
     )
-    list_filter = ("is_active",)
-    search_fields = ("product__name", "sku_variant")
-
-    inlines = [VariantMediaInline]
+    list_filter = ("is_active", "category")
+    search_fields = ("name", "sku")
+    inlines = [
+        ProductImageInline,
+        ProductCharacteristicInline,
+        ProductAttributeValueInline,
+    ]
 
 
 @admin.register(Attribute)
@@ -76,17 +77,6 @@ class AttributeAdmin(admin.ModelAdmin):
 class AttributeValueAdmin(admin.ModelAdmin):
     list_display = ("id", "attribute__name", "value")
     search_fields = ("value", "attribute__name")
-
-
-@admin.register(Characteristic)
-class CharacteristicAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "value")
-    search_fields = ("id", "name", "value")
-
-
-@admin.register(ProductAttributeValue)
-class ProductAttributeValue(admin.ModelAdmin):
-    list_display = ("id", "product", "attribute", "attribute_value")
 
 
 @admin.register(Favourite)
@@ -105,67 +95,7 @@ class CartAdmin(admin.ModelAdmin):
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ("id", "cart", "product", "attribute_stock", "quantity", "company")
-    list_filter = ("cart", "product", "company")
+    list_display = ("id", "cart", "product", "quantity")
+    list_filter = ("cart", "product")
     search_fields = ("cart", "product")
-    autocomplete_fields = ["product", "attribute_stock", "company", "cart"]
-
-
-@admin.register(ProductConstructor)
-class ProductConstructorAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "name",
-        "owner",
-        "category",
-        "price_type",
-        "status",
-        "is_active",
-    )
-    list_filter = ("status", "is_active", "price_type", "product_type")
-    search_fields = ("name", "sku")
-
-
-class VariantMediaConstructorInline(admin.TabularInline):
-    model = VariantMediaConstructor
-    extra = 1
-
-
-@admin.register(VariantConstructor)
-class VariantConstructorAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "product_constructor",
-        "sku_variant",
-        "price_override",
-        "stock_quantity",
-        "is_active",
-    )
-    list_filter = ("is_active",)
-    search_fields = ("product_constructor__name", "sku_variant")
-    inlines = [VariantMediaConstructorInline]
-
-
-@admin.register(CharacteristicConstructor)
-class CharacteristicConstructorAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "value", "variant_constructor")
-    search_fields = ("id", "name", "value")
-
-
-@admin.register(ProductAttributeValueConstructor)
-class ProductAttributeValueConstructorAdmin(admin.ModelAdmin):
-    list_display = ("id", "variant_constructor", "attribute", "attribute_value")
-
-
-@admin.register(VariantAttributeStock)
-class VariantAttributeStockAdmin(admin.ModelAdmin):
-    list_display = ("id", "variant", "quantity")
-    list_filter = ("variant",)
-    search_fields = ("variant__product__name",)
-
-
-@admin.register(VariantAttributeStockConstructor)
-class VariantAttributeStockConstructorAdmin(admin.ModelAdmin):
-    list_display = ("id", "variant_constructor", "quantity")
-    list_filter = ("variant_constructor",)
-    search_fields = ("variant_constructor__product_constructor__name",)
+    autocomplete_fields = ["product", "cart"]

@@ -8,8 +8,6 @@ class CompanyFilter(django_filters.FilterSet):
     SORT_CHOICES = (
         ("new", "New"),
         ("old", "Old"),
-        ("most_products", "Most products"),
-        ("most_ordered", "Most ordered"),
     )
 
     search = django_filters.CharFilter(method="search_filter")
@@ -17,7 +15,6 @@ class CompanyFilter(django_filters.FilterSet):
     is_popular = django_filters.BooleanFilter(method="is_popular_filter")
     region = django_filters.CharFilter(field_name="region")
     industry = django_filters.CharFilter(method="industry_filter")
-    product_type = django_filters.CharFilter(field_name="owner_products__product_type")
 
     class Meta:
         model = Company
@@ -40,22 +37,12 @@ class CompanyFilter(django_filters.FilterSet):
     def sort_filter(self, queryset, name, value):
         if value == "old":
             return queryset.order_by("created_at")
-        if value == "most_products":
-            return queryset.annotate(
-                products_count=Count("owner_products", distinct=True)
-            ).order_by("-products_count", "-created_at")
-        if value == "most_ordered":
-            return queryset.annotate(
-                orders_count=Count("company_orders", distinct=True)
-            ).order_by("-orders_count", "-created_at")
         return queryset.order_by("-created_at")
 
     def is_popular_filter(self, queryset, name, value):
         if not value:
             return queryset
-        return queryset.annotate(
-            orders_count=Count("company_orders", distinct=True)
-        ).order_by("-orders_count", "-created_at")
+        return queryset.order_by("-view_count", "-created_at")
 
 
 class CompanyDraftFilter(django_filters.FilterSet):

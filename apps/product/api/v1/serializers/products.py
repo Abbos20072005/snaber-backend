@@ -1,14 +1,14 @@
-from django.conf import settings
+from django.db import transaction
 from rest_framework import serializers
 
-from apps.company.api.v1.serializers.companies import CompanySerializer
-from apps.company.models import Company
 from apps.product.api.v1.serializers.categories import CategoryListSerializer
-from apps.product.api.v1.utils.currency import convert_price, get_target_currency
 from apps.product.models import (
     Attribute,
+    AttributeValue,
     Product,
-    VariantMedia,
+    ProductAttributeValue,
+    ProductCharacteristic,
+    ProductImage,
 )
 
 
@@ -20,17 +20,6 @@ class CategoryBaseSerializer(serializers.Serializer):
 class UnitBaseSerialzer(serializers.Serializer):
     id = serializers.IntegerField()
     unit = serializers.CharField()
-
-
-class IndustryBaseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-
-
-class CreatorBaseSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    full_name = serializers.CharField(read_only=True)
-    email = serializers.CharField(read_only=True)
 
 
 class AttributeValueBaseSerializer(serializers.Serializer):
@@ -49,202 +38,95 @@ class ProductAttributeValueSerializer(serializers.Serializer):
     value = AttributeValueBaseSerializer(source="attribute_value")
 
 
-class VariantMediaBaseSerializer(serializers.Serializer):
-    product_variant = serializers.IntegerField(source="product_variant.id")
-    file = serializers.FileField()
-    product_media_type = serializers.ChoiceField(choices=VariantMedia.MediaType.choices)
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ("id", "file", "position")
 
 
-class CharacteristicBaseSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    value = serializers.CharField()
-
-
-class AttributeValueStockBaseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    value = serializers.CharField()
-
-
-class AttributeStockBaseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    attribute_values = AttributeValueStockBaseSerializer(many=True)
-    quantity = serializers.IntegerField()
-
-
-class VariantBaseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    variant_constructor_id = serializers.SerializerMethodField()
-    description = serializers.CharField()
-    moq_override = serializers.IntegerField()
-    price_override = serializers.DecimalField(max_digits=14, decimal_places=2)
-    sku_variant = serializers.CharField()
-    stock_quantity = serializers.IntegerField()
-    attributes = ProductAttributeValueSerializer(
-        many=True, source="product_attribute_values"
-    )
-    medias = VariantMediaBaseSerializer(many=True, source="product_variant_medias")
-    characteristics = CharacteristicBaseSerializer(
-        many=True, source="characteristic_set"
-    )
-    attribute_stocks = AttributeStockBaseSerializer(many=True, read_only=True)
-    is_active = serializers.BooleanField()
-
-    def get_variant_constructor_id(self, obj):
-        vc = obj.variant_constructors.first()
-        return vc.id if vc else None
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        target = get_target_currency(self.context)
-        if target and data.get("price_override") is not None:
-            data["price_override"] = convert_price(data["price_override"], target)
-        return data
+class CharacteristicDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductCharacteristic
+        fields = (
+            "id",
+            "name",
+            "value",
+            "name_uz",
+            "name_ru",
+            "name_en",
+            "value_uz",
+            "value_ru",
+            "value_en",
+        )
 
 
 class ProductListSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     sku = serializers.CharField()
-    product_type = serializers.ChoiceField(choices=Product.ProductType.choices)
-    price_type = serializers.ChoiceField(choices=Product.PriceType.choices)
-    price_min = serializers.DecimalField(max_digits=55, decimal_places=2)
-    price_max = serializers.DecimalField(max_digits=55, decimal_places=2)
-    image = serializers.FileField()
+    image = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
-    moq = serializers.IntegerField()
-    moq_unit = UnitBaseSerialzer()
-    lead_time_min = serializers.IntegerField()
-    lead_time_max = serializers.IntegerField()
-    # Product may be created without a company (feature disabled for the frontend)
-    industries = IndustryBaseSerializer(
-        many=True, source="owner.industries", default=[]
-    )
+    price = serializers.DecimalField(max_digits=14, decimal_places=2)
+    discount_percent = serializers.IntegerField()
+    final_price = serializers.DecimalField(max_digits=14, decimal_places=2)
+    stock_quantity = serializers.IntegerField()
+    unit = UnitBaseSerialzer(allow_null=True)
     category = serializers.IntegerField(source="category_id")
-    variants = serializers.IntegerField(source="product_variants.count")
-    view_count = serializers.IntegerField()
-    creator = CreatorBaseSerializer(
-        read_only=True, allow_null=True, default=None
-    )
-    company = CompanySerializer(source="owner", allow_null=True, default=None)
-    # First variant attributes for the storefront product rows.
+    is_active = serializers.BooleanField()
+    average_rating = serializers.DecimalField(max_digits=3, decimal_places=1)
     specifications = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField()
     created_at = serializers.DateTimeField()
-    currency = serializers.SerializerMethodField()
 
-    def get_specifications(self, obj):
-        variant = obj.product_variants.filter(is_active=True).first()
-        if variant is None:
-            variant = obj.product_variants.first()
-        if variant is None:
-            return []
-        specs = []
-        pairs = variant.product_attribute_values.select_related(
-            "attribute", "attribute_value"
-        )[:6]
-        for pair in pairs:
-            specs.append(
-                {"name": pair.attribute.name, "value": pair.attribute_value.value}
-            )
-        return specs
-
-    def get_currency(self, obj):
-        target = get_target_currency(self.context)
-        return target if target else settings.BASE_CURRENCY
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        target = get_target_currency(self.context)
-        if target:
-            if data.get("price_min") is not None:
-                data["price_min"] = convert_price(data["price_min"], target)
-            if data.get("price_max") is not None:
-                data["price_max"] = convert_price(data["price_max"], target)
-        return data
-
-    def get_images(self, obj):
+    def _image_urls(self, obj):
         request = self.context.get("request")
         urls = []
-
-        medias = VariantMedia.objects.filter(
-            product_variant__product=obj,
-            product_media_type=VariantMedia.MediaType.PHOTO,
-        )[:10]
-        for media in medias:
-            if media.file:
-                url = media.file.url
-                if request is not None:
-                    url = request.build_absolute_uri(url)
-                urls.append(url)
-
+        for image in obj.images.all():
+            if image.file:
+                url = image.file.url
+                urls.append(request.build_absolute_uri(url) if request else url)
         return urls
 
+    def get_image(self, obj):
+        urls = self._image_urls(obj)
+        return urls[0] if urls else None
 
-class CompanyProductListSerializer(ProductListSerializer):
-    category = CategoryBaseSerializer()
+    def get_images(self, obj):
+        return self._image_urls(obj)[:10]
 
-
-class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    owner = serializers.PrimaryKeyRelatedField(
-        queryset=Company.objects.all(), required=False, allow_null=True
-    )
-
-    class Meta:
-        model = Product
-        fields = (
-            "id",
-            "owner",
-            "name_uz",
-            "name_ru",
-            "name_en",
-            "category",
-            "sku",
-            "image",
-            "product_type",
-            "price_type",
-            "price_min",
-            "price_max",
-            "moq",
-            "moq_unit",
-            "lead_time_min",
-            "lead_time_max",
-            "is_active",
-        )
+    def get_specifications(self, obj):
+        # Filter attributes first, then the free-form characteristics, like the detail page.
+        rows = [
+            {"name": item.attribute.name, "value": item.attribute_value.value}
+            for item in obj.product_attribute_values.all()
+        ] + [{"name": item.name, "value": item.value} for item in obj.characteristics.all()]
+        return rows[:6]
 
 
 class ProductDetailSerializer(ProductListSerializer):
-    product_id = serializers.IntegerField(source="pk")
-    constructor_id = serializers.SerializerMethodField()
     category = CategoryBaseSerializer()
-    variants = VariantBaseSerializer(many=True, source="product_variants")
-    moderator_comment = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
-
-    def _get_constructor(self, obj):
-        return getattr(obj, "product_constructor", None)
-
-    def get_constructor_id(self, obj):
-        constructor = self._get_constructor(obj)
-        return constructor.id if constructor else None
-
-    def get_moderator_comment(self, obj):
-        constructor = self._get_constructor(obj)
-        return constructor.moderator_comment if constructor else ""
-
-    def get_status(self, obj):
-        constructor = self._get_constructor(obj)
-        return constructor.status if constructor else None
+    description = serializers.CharField()
+    medias = ProductImageSerializer(many=True, source="images")
+    characteristics = CharacteristicDetailSerializer(many=True)
+    attributes = ProductAttributeValueSerializer(
+        many=True, source="product_attribute_values"
+    )
+    name_uz = serializers.CharField()
+    name_ru = serializers.CharField()
+    name_en = serializers.CharField()
+    description_uz = serializers.CharField()
+    description_ru = serializers.CharField()
+    description_en = serializers.CharField()
 
 
 class ProductSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source="product.id")
-    name = serializers.CharField(source="product.name")
+    id = serializers.IntegerField()
+    name = serializers.CharField()
     media = serializers.SerializerMethodField()
-    owner = serializers.IntegerField(read_only=True, source="product.owner.id")
-    category = serializers.IntegerField(read_only=True, source="product.category.id")
+    category = serializers.IntegerField(read_only=True, source="category_id")
 
     def get_media(self, obj):
-        first = obj.product_variant_medias.first()
+        first = obj.images.first()
         if not first or not first.file:
             return None
         request = self.context.get("request")
@@ -252,13 +134,137 @@ class ProductSerializer(serializers.Serializer):
         return request.build_absolute_uri(url) if request else url
 
 
-class DraftProductSerializer(serializers.ModelSerializer):
+class CharacteristicWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductCharacteristic
+        fields = (
+            "name_uz",
+            "name_ru",
+            "name_en",
+            "value_uz",
+            "value_ru",
+            "value_en",
+        )
+        extra_kwargs = {
+            "name_uz": {"required": True, "allow_blank": False},
+            "name_ru": {"required": False, "allow_blank": True},
+            "name_en": {"required": False, "allow_blank": True},
+            "value_uz": {"required": True, "allow_blank": False},
+            "value_ru": {"required": False, "allow_blank": True},
+            "value_en": {"required": False, "allow_blank": True},
+        }
+
+    def validate(self, attrs):
+        for field in ("name", "value"):
+            for lang in ("ru", "en"):
+                key = f"{field}_{lang}"
+                if not attrs.get(key):
+                    attrs[key] = attrs[f"{field}_uz"]
+        return attrs
+
+
+class ProductCreateUpdateSerializer(serializers.ModelSerializer):
+    characteristics = CharacteristicWriteSerializer(many=True, required=False)
+    attribute_values = serializers.PrimaryKeyRelatedField(
+        queryset=AttributeValue.objects.all(), many=True, required=False
+    )
+
     class Meta:
         model = Product
-        fields = ("id",)
+        fields = (
+            "id",
+            "name_uz",
+            "name_ru",
+            "name_en",
+            "description_uz",
+            "description_ru",
+            "description_en",
+            "category",
+            "sku",
+            "unit",
+            "price",
+            "discount_percent",
+            "stock_quantity",
+            "is_active",
+            "characteristics",
+            "attribute_values",
+        )
+        extra_kwargs = {
+            "name_uz": {"required": True, "allow_blank": False},
+            "name_ru": {"required": False, "allow_blank": True},
+            "name_en": {"required": False, "allow_blank": True},
+            "description_uz": {"required": False, "allow_blank": True},
+            "description_ru": {"required": False, "allow_blank": True},
+            "description_en": {"required": False, "allow_blank": True},
+        }
+
+    def validate_category(self, category):
+        if not category.is_leaf:
+            raise serializers.ValidationError(
+                "Product can only be added to the last-level category."
+            )
+        return category
+
+    def validate(self, attrs):
+        # The manager fills in Uzbek only; Russian and English default to it
+        # until they are translated.
+        for field in ("name", "description"):
+            source = attrs.get(f"{field}_uz")
+            if source is None:
+                continue
+            for lang in ("ru", "en"):
+                key = f"{field}_{lang}"
+                current = getattr(self.instance, key, "") if self.instance else ""
+                if not attrs.get(key) and not current:
+                    attrs[key] = source
+        return attrs
+
+    @staticmethod
+    def _set_characteristics(product, characteristics):
+        product.characteristics.all().delete()
+        ProductCharacteristic.objects.bulk_create(
+            [ProductCharacteristic(product=product, **item) for item in characteristics]
+        )
+
+    @staticmethod
+    def _set_attribute_values(product, attribute_values):
+        product.product_attribute_values.all().delete()
+        ProductAttributeValue.objects.bulk_create(
+            [
+                ProductAttributeValue(
+                    product=product,
+                    attribute=value.attribute,
+                    attribute_value=value,
+                )
+                for value in attribute_values
+            ]
+        )
+
+    @transaction.atomic
+    def create(self, validated_data):
+        characteristics = validated_data.pop("characteristics", [])
+        attribute_values = validated_data.pop("attribute_values", [])
+        product = super().create(validated_data)
+        self._set_characteristics(product, characteristics)
+        self._set_attribute_values(product, attribute_values)
+        return product
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        characteristics = validated_data.pop("characteristics", None)
+        attribute_values = validated_data.pop("attribute_values", None)
+        product = super().update(instance, validated_data)
+        if characteristics is not None:
+            self._set_characteristics(product, characteristics)
+        if attribute_values is not None:
+            self._set_attribute_values(product, attribute_values)
+        return product
+
+
+class ProductImageUploadSerializer(serializers.Serializer):
+    files = serializers.ListField(child=serializers.FileField(), allow_empty=False)
 
 
 class GlobalSearchSerializer(serializers.Serializer):
     products = ProductSerializer(many=True)
     categories = CategoryListSerializer(many=True)
-    companies = CompanySerializer(many=True)

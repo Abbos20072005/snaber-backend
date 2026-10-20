@@ -437,8 +437,6 @@ class Command(BaseCommand):
             Category,
             Product,
             ProductAttributeValue,
-            ProductConstructor,
-            VariantAttributeStock,
         )
 
         with transaction.atomic():
@@ -477,7 +475,7 @@ class Command(BaseCommand):
                         )
                         sub_by_code[sub_code] = sub_cat
 
-            # 2. Migrate products (+ their variant attributes/stocks).
+            # 2. Migrate products (+ their attributes).
             stats = {"moved": 0, "parked": 0, "attrs": 0, "values": 0}
             old_leaf_ids = set(
                 Category.objects.filter(is_leaf=True)
@@ -493,10 +491,10 @@ class Command(BaseCommand):
                     new_sub = sub_by_code[PARK_SUB]
                     stats["parked"] += 1
 
-                # Recreate variant attributes under the new leaf from old ones.
+                # Recreate product attributes under the new leaf from old ones.
                 key_to_new_value = {}
                 for pav in ProductAttributeValue.objects.filter(
-                    product__product=product
+                    product=product
                 ).select_related("attribute", "attribute_value"):
                     old_attr = pav.attribute
                     attr_en = old_attr.name_en or old_attr.name
@@ -528,24 +526,6 @@ class Command(BaseCommand):
                     key_to_new_value[(attr_en, val_en)] = new_val
                     pav.delete()
 
-                # Remap stocks to the new values.
-                for stock in VariantAttributeStock.objects.filter(variant__product=product):
-                    new_values = []
-                    for old_value in stock.attribute_values.all():
-                        for (a_en, v_en), new_value in key_to_new_value.items():
-                            if v_en == (old_value.value_en or old_value.value):
-                                new_values.append(new_value)
-                                break
-                    stock.attribute_values.clear()
-                    if new_values:
-                        # De-duplicate while keeping order.
-                        seen, unique = set(), []
-                        for value in new_values:
-                            if value.id not in seen:
-                                seen.add(value.id)
-                                unique.append(value)
-                        stock.attribute_values.add(*unique)
-
                 product.category = new_sub
                 product.save(update_fields=["category"])
 
@@ -558,14 +538,11 @@ class Command(BaseCommand):
             Category.objects.filter(id__in=list(old_leaf_ids) + old_roots).delete()
             # Orphaned old attributes (their PAVs are gone or moved).
             Attribute.objects.filter(productattributevalue__isnull=True).delete()
-            # Draft constructors tied to deleted categories vanish via CASCADE; report rest.
-            remaining_constructors = ProductConstructor.objects.count()
 
             self.stdout.write(self.style.SUCCESS(
                 f"Tree: {Category.objects.filter(level=0).count()} groups, "
                 f"{Category.objects.filter(level=1).count()} sections, "
                 f"{Category.objects.filter(level=2).count()} subcategories. "
                 f"Products moved: {stats['moved']}, parked: {stats['parked']}, "
-                f"attrs recreated: {stats['attrs']}, values: {stats['values']}. "
-                f"Remaining constructors: {remaining_constructors}."
+                f"attrs recreated: {stats['attrs']}, values: {stats['values']}."
             ))

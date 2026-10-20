@@ -22,7 +22,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "type",
         "buyer",
         "seller",
-        "product_variant",
+        "product",
         "order",
         "created_at",
     )

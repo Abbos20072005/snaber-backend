@@ -2,12 +2,11 @@ from modeltranslation.translator import TranslationOptions, translator
 
 from apps.product.models import (
     Attribute,
+    AttributeValue,
     Category,
     Product,
-    ProductConstructor,
-    Variant,
-    VariantConstructor,
-    AttributeValue, Unit,
+    ProductCharacteristic,
+    Unit,
 )
 
 
@@ -19,17 +18,17 @@ translator.register(Category, CategoryTranslationOptions)
 
 
 class ProductTranslationOptions(TranslationOptions):
-    fields = ("name",)
+    fields = ("name", "description")
 
 
 translator.register(Product, ProductTranslationOptions)
 
 
-class VariantTranslationOptions(TranslationOptions):
-    fields = ("description",)
+class ProductCharacteristicTranslationOptions(TranslationOptions):
+    fields = ("name", "value")
 
 
-translator.register(Variant, VariantTranslationOptions)
+translator.register(ProductCharacteristic, ProductCharacteristicTranslationOptions)
 
 
 class AttributeTranslationOptions(TranslationOptions):
@@ -46,21 +45,8 @@ class AttributeValueTranslationOptions(TranslationOptions):
 translator.register(AttributeValue, AttributeValueTranslationOptions)
 
 
-class ProductConstructorTranslationOptions(TranslationOptions):
-    fields = ("name",)
-
-
-translator.register(ProductConstructor, ProductConstructorTranslationOptions)
-
-
-class VariantConstructorTranslationOptions(TranslationOptions):
-    fields = ("description",)
-
-
-translator.register(VariantConstructor, VariantConstructorTranslationOptions)
-
-
 class UnitTranslationOptions(TranslationOptions):
     fields = ("unit",)
+
 
 translator.register(Unit, UnitTranslationOptions)

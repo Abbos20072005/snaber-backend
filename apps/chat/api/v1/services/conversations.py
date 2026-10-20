@@ -23,9 +23,7 @@ class ConversationService(BaseService):
         user = self.request.user
         if user.role == User.Roles.BUYER:
             conversations = self.db.get_by_buyer(user=user)
-        elif user.role == User.Roles.SELLER:
-            conversations = self.db.get_by_seller(user=user)
-        elif user.role in (User.Roles.ADMIN, User.Roles.SUPER_ADMIN):
+        elif user.role == User.Roles.ADMIN:
             conversations = self.db.get_by_admin()
         else:
             conversations = []
@@ -97,7 +95,7 @@ class ConversationService(BaseService):
     def mark_conversation_as_read(self, *args, **kwargs):
         conversation_id = kwargs.get("id")
         user = self.request.user
-        if user.role in [User.Roles.SELLER, User.Roles.BUYER]:
+        if user.role in [User.Roles.ADMIN, User.Roles.BUYER]:
             conversation = self.db.get_conversation_for_user(conversation_id, user)
             Message.objects.filter(conversation=conversation, is_read=False).exclude(
                 sender=user

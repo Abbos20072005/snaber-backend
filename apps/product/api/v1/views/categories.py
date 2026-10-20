@@ -3,7 +3,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdminOrSuperAdmin
+from apps.core.permissions import IsAdmin
 from apps.product.api.v1.serializers.categories import (
     CategoryBreadcrumbHelperSerializer,
     CategoryCreateSerializer,
@@ -50,7 +50,7 @@ class CategoriesPublicListView(APIView):
 class CategoryListCreateView(APIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
+            return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
 
     @swagger_auto_schema(
@@ -74,7 +74,7 @@ class CategoryListCreateView(APIView):
 class CategoryChildListUpdateDeleteView(APIView):
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [IsAuthenticated(), IsAdminOrSuperAdmin()]
+            return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
 
     @swagger_auto_schema(

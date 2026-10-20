@@ -2,14 +2,13 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdminOrSuperAdmin
+from apps.core.permissions import IsAdmin
 from apps.dashboard.api.v1.serializers.admins import (
     Last30DaysStatsSerializer,
     MonthlyRevenueItemSerializer,
     OrdersCountByCategorySerializer,
-    RFQOrderStatusCountSerializer,
     TodayOrdersCountSerializer,
-    TopCompanyByOrdersSerializer,
+    TopProductByOrdersSerializer,
     UserCountsSerializer,
     WeeklyJoinedUsersItemSerializer,
 )
@@ -17,45 +16,44 @@ from apps.dashboard.api.v1.services.admins import AdminService
 
 
 class TodayOrdersCountAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: TodayOrdersCountSerializer()},
         tags=["Dashboard"],
-        operation_description="Returns today's order count and RFQ order count",
+        operation_description="Returns today's order count",
     )
     def get(self, request, *args, **kwargs):
         return AdminService(request=request).get_today_orders_count(*args, **kwargs)
 
 
 class Last30DaysStatsAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: Last30DaysStatsSerializer()},
         tags=["Dashboard"],
         operation_description="Returns last 30 days stats: total money "
-        "spent, total orders count, verified sellers count, total users count",
+        "spent, total orders count, total users count",
     )
     def get(self, request, *args, **kwargs):
         return AdminService(request=request).get_last_30_days_stats(*args, **kwargs)
 
 
 class UserCountsAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: UserCountsSerializer()},
         tags=["Dashboard"],
-        operation_description="Returns count of sellers, buyers, and total users. "
-        "Admins also see moderators count. Super admins additionally see admins count.",
+        operation_description="Returns count of buyers, admins and total users",
     )
     def get(self, request, *args, **kwargs):
         return AdminService(request=request).get_user_counts()
 
 
 class CurrentWeekJoinedUsersAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: WeeklyJoinedUsersItemSerializer(many=True)},
@@ -67,20 +65,8 @@ class CurrentWeekJoinedUsersAPIView(APIView):
         return AdminService(request=request).get_current_week_joined_users()
 
 
-class RFQOrderStatusCountAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
-
-    @swagger_auto_schema(
-        responses={200: RFQOrderStatusCountSerializer()},
-        tags=["Dashboard"],
-        operation_description="Returns RFQ order count grouped by status",
-    )
-    def get(self, request, *args, **kwargs):
-        return AdminService(request=request).get_rfq_orders_count_by_status()
-
-
 class MonthlyRevenueStatsAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: MonthlyRevenueItemSerializer(many=True)},
@@ -92,21 +78,21 @@ class MonthlyRevenueStatsAPIView(APIView):
         return AdminService(request=request).get_monthly_revenue_stats()
 
 
-class TopCompaniesByOrdersAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+class TopProductsByOrdersAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
-        responses={200: TopCompanyByOrdersSerializer(many=True)},
+        responses={200: TopProductByOrdersSerializer(many=True)},
         tags=["Dashboard"],
-        operation_description="Returns top 5 companies by "
+        operation_description="Returns top 5 products by "
         "order count with total revenue",
     )
     def get(self, request, *args, **kwargs):
-        return AdminService(request=request).get_top_companies_by_orders()
+        return AdminService(request=request).get_top_products_by_orders()
 
 
 class OrdersCountByCategoryAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         responses={200: OrdersCountByCategorySerializer(many=True)},

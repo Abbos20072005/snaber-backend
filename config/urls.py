@@ -50,7 +50,6 @@ urlpatterns = [
     path("api/", include("apps.order.api.urls")),
     # Chat center is disabled for the frontend
     # path("api/", include("apps.chat.api.urls")),
-    path("api/", include("apps.notification.api.urls")),
     path("api/", include("apps.dashboard.api.urls")),
     path("api/", include("apps.review.api.urls")),
     re_path(r"static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT}),

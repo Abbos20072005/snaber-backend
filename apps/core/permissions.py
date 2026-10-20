@@ -14,28 +14,6 @@ class IsBuyer(BasePermission):
         )
 
 
-class IsSeller(BasePermission):
-    message = "Only sellers can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == User.Roles.SELLER
-        )
-
-
-class IsModerator(BasePermission):
-    message = "Only moderators can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == User.Roles.MODERATOR
-        )
-
-
 class IsAdmin(BasePermission):
     message = "Only admins can perform this action."
 
@@ -44,55 +22,6 @@ class IsAdmin(BasePermission):
             request.user
             and request.user.is_authenticated
             and request.user.role == User.Roles.ADMIN
-        )
-
-
-class IsSuperAdmin(BasePermission):
-    message = "Only super admins can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == User.Roles.SUPER_ADMIN
-        )
-
-
-class IsAdminOrSuperAdmin(BasePermission):
-    message = "Only admins or super admins can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in [User.Roles.ADMIN, User.Roles.SUPER_ADMIN]
-        )
-
-
-class IsModeratorOrAdmin(BasePermission):
-    message = "Only moderators or admins can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role
-            in [
-                User.Roles.MODERATOR,
-                User.Roles.ADMIN,
-                User.Roles.SUPER_ADMIN,
-            ]
-        )
-
-
-class IsSellerOrBuyer(BasePermission):
-    message = "Only sellers or buyers can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in [User.Roles.SELLER, User.Roles.BUYER]
         )
 
 

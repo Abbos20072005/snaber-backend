@@ -10,7 +10,7 @@ class CommentImageInline(admin.TabularInline):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "variant_id", "text", "rating", "created_at")
+    list_display = ("id", "user", "product_id", "text", "rating", "created_at")
     list_filter = ("created_at", "rating")
-    search_fields = ("user__email", "variant__product__name", "text")
+    search_fields = ("user__email", "product__name", "text")
     inlines = [CommentImageInline]
