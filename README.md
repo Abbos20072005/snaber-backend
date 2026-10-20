@@ -53,7 +53,7 @@ npx --yes tsx@4.19.2 tools/export_catalog.mts <frontend papkasi> apps/catalog/fi
 
 ## API
 
-Hammasi `/api/v1/` ostida, autentifikatsiyasiz.
+Hammasi `/api/v1/` ostida, autentifikatsiyasiz. Frontendchi uchun to'liq qo'llanma — javob namunalari, TypeScript turlari, `engine.ts` dan o'tish: [docs/frontend-api.md](docs/frontend-api.md).
 
 | Manzil | Vazifasi |
 | --- | --- |
