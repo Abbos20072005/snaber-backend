@@ -35,7 +35,10 @@ _TEXT_TRANSLATION = str.maketrans(
 
 
 def text_key(value):
-    """Approximates JS `localeCompare`: punctuation first, case-insensitive, lowercase before uppercase."""
+    """Approximates JS `localeCompare`.
+
+    Punctuation first, then case-insensitive, lowercase before uppercase.
+    """
     return value.casefold().translate(_TEXT_TRANSLATION), value.swapcase()
 
 
@@ -119,7 +122,9 @@ def order_rows(rows, group_key=None):
 
 def first_available(rows):
     """Where a leaf category opens: the first product that is not made to order."""
-    return next((row for row in rows if row.stock != StockStatus.ON_ORDER), rows[0] if rows else None)
+    return next(
+        (row for row in rows if row.stock != StockStatus.ON_ORDER), rows[0] if rows else None
+    )
 
 
 def group_key_of(tree, category):
@@ -220,7 +225,11 @@ def build_variants(product, family, attributes, limit=VARIANT_LIMIT):
         for value in sorted(members, key=compare_key):
             best, best_score = None, -1
             for row in members[value]:
-                score = sum(1 for other in varying if other != key and row.attrs.get(other) == own.get(other))
+                score = sum(
+                    1
+                    for other in varying
+                    if other != key and row.attrs.get(other) == own.get(other)
+                )
                 if score > best_score or (score == best_score and row.price < best.price):
                     best, best_score = row, score
             options.append({"value": value, "sku": best.sku, "selected": own[key] == value})

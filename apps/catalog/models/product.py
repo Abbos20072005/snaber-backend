@@ -64,9 +64,7 @@ class Product(BaseModel):
 
 
 class ProductAttributeValue(BaseModel):
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="attribute_values"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="attribute_values")
     attribute = models.ForeignKey(
         "catalog.Attribute",
         verbose_name="Xususiyat",

@@ -82,7 +82,9 @@ class OrderAdmin(AuthorMixin, admin.ModelAdmin):
             order = self._editing_order(request)
             if order is not None:
                 allowed = {order.status, *ALLOWED_TRANSITIONS[order.status]}
-                kwargs["choices"] = [choice for choice in OrderStatus.choices if choice[0] in allowed]
+                kwargs["choices"] = [
+                    choice for choice in OrderStatus.choices if choice[0] in allowed
+                ]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def _editing_order(self, request):

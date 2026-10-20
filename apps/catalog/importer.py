@@ -86,7 +86,9 @@ class CatalogImporter:
         for attribute in data["attributes"]:
             requires = attribute.get("requires")
             if requires and requires.get("key") not in known_keys:
-                errors.append(f"{attribute['key']}: shartdagi xususiyat topilmadi: {requires.get('key')}")
+                errors.append(
+                    f"{attribute['key']}: shartdagi xususiyat topilmadi: {requires.get('key')}"
+                )
 
         paths = [tuple(category.get("path") or ()) for category in data["categories"]]
         known_paths = set(paths)
@@ -95,7 +97,7 @@ class CatalogImporter:
         for path, count in Counter(paths).items():
             if count > 1:
                 errors.append(f"Kategoriya takrorlangan: {'/'.join(path)}")
-        for category, path in zip(data["categories"], paths):
+        for category, path in zip(data["categories"], paths, strict=False):
             label = "/".join(path) or "?"
             if not path or not all(SLUG_RE.match(slug or "") for slug in path):
                 errors.append(f"Kategoriya yo'li noto'g'ri: {label}")
@@ -119,14 +121,16 @@ class CatalogImporter:
             if not product.get("sku") or not product.get("name"):
                 errors.append(f"{sku}: artikul yoki nomi bo'sh")
             if path not in known_paths or path in parent_paths:
-                errors.append(f"{sku}: kategoriya oxirgi darajada emas yoki topilmadi: {'/'.join(path)}")
+                errors.append(
+                    f"{sku}: kategoriya oxirgi darajada emas yoki topilmadi: {'/'.join(path)}"
+                )
             if not isinstance(product.get("price"), int) or product["price"] < 0:
                 errors.append(f"{sku}: narx butun musbat son bo'lishi kerak")
             if not isinstance(product.get("pack"), int) or product["pack"] < 1:
                 errors.append(f"{sku}: qadoqdagi soni kamida 1 bo'lishi kerak")
             if product.get("stock") not in stocks:
                 errors.append(f"{sku}: noma'lum holat {product.get('stock')!r}")
-            for key in (product.get("attrs") or {}):
+            for key in product.get("attrs") or {}:
                 if key not in known_keys:
                     errors.append(f"{sku}: noma'lum xususiyat {key}")
 
@@ -156,7 +160,9 @@ class CatalogImporter:
             attribute = self.attributes[row["key"]]
             requires = row.get("requires") or {}
             attribute.requires_attribute = self.attributes.get(requires.get("key"))
-            attribute.requires_value = requires.get("value", "") if attribute.requires_attribute else ""
+            attribute.requires_value = (
+                requires.get("value", "") if attribute.requires_attribute else ""
+            )
             attribute.save(update_fields=["requires_attribute", "requires_value", "modified_at"])
 
     # ------------------------------------------------------------ categories

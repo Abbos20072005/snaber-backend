@@ -48,7 +48,11 @@ class Order(BaseModel):
         if self.pk is None:
             return
         previous = Order.objects.filter(pk=self.pk).values_list("status", flat=True).first()
-        if previous and previous != self.status and self.status not in ALLOWED_TRANSITIONS[previous]:
+        if (
+            previous
+            and previous != self.status
+            and self.status not in ALLOWED_TRANSITIONS[previous]
+        ):
             raise ValidationError(
                 {
                     "status": f"«{OrderStatus(previous).label}» holatidan "

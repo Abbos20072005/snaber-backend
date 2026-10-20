@@ -28,11 +28,18 @@ class TestOrderCreateAPI:
         assert response.data["number"] == order.pk
         assert response.data["status"] == OrderStatus.NEW
         assert response.data["total"] == 300 * 2 + 200
-        assert [(item["sku"], item["price"], item["pack"], item["qty"], item["amount"]) for item in response.data["items"]] == [
+        assert [
+            (item["sku"], item["price"], item["pack"], item["qty"], item["amount"])
+            for item in response.data["items"]
+        ] == [
             ("B-1", 300, 25, 2, 600),
             ("B-3", 200, 50, 1, 200),
         ]
-        assert (order.name, order.phone, order.ip_address) == ("Алишер Каримов", "+998901234567", "127.0.0.1")
+        assert (order.name, order.phone, order.ip_address) == (
+            "Алишер Каримов",
+            "+998901234567",
+            "127.0.0.1",
+        )
 
     def test_price_comes_from_database_not_from_client(self, api_client, catalog):
         items = [{"sku": "B-1", "qty": 1, "price": 1}]
@@ -99,7 +106,10 @@ class TestOrderThrottle:
     def test_too_many_orders_return_429(self, api_client, catalog):
         url = reverse("order-create")
         for _ in range(2):
-            assert api_client.post(url, payload(), format="json").status_code == status.HTTP_201_CREATED
+            assert (
+                api_client.post(url, payload(), format="json").status_code
+                == status.HTTP_201_CREATED
+            )
 
         response = api_client.post(url, payload(), format="json")
 

@@ -19,8 +19,22 @@ CATALOG = {
         },
     ],
     "categories": [
-        {"path": ["consumables"], "name": "Расходники", "icon": "fasteners", "description": "", "order": 0, "table": None},
-        {"path": ["consumables", "fasteners"], "name": "Крепёж", "icon": "screws", "description": "", "order": 0, "table": None},
+        {
+            "path": ["consumables"],
+            "name": "Расходники",
+            "icon": "fasteners",
+            "description": "",
+            "order": 0,
+            "table": None,
+        },
+        {
+            "path": ["consumables", "fasteners"],
+            "name": "Крепёж",
+            "icon": "screws",
+            "description": "",
+            "order": 0,
+            "table": None,
+        },
         {
             "path": ["consumables", "fasteners", "bolts"],
             "name": "Болты",
@@ -76,7 +90,12 @@ class TestImportCatalog:
         pitch = Attribute.objects.get(key="pitch")
         assert (pitch.requires_attribute.key, pitch.requires_value) == ("system", "Метрическая")
         product = Product.objects.get(sku="SHA-00002")
-        assert (product.price, product.pack, product.stock, product.is_featured) == (15000, 100, "low", True)
+        assert (product.price, product.pack, product.stock, product.is_featured) == (
+            15000,
+            100,
+            "low",
+            True,
+        )
         assert product.search_text == "винт #10-24 sha-00002"
         value = ProductAttributeValue.objects.get(product=product, attribute__key="thread")
         assert (value.sort_group, round(value.sort_number, 3)) == (0, 0.19)
@@ -97,7 +116,9 @@ class TestImportCatalog:
         assert product.search_text.startswith("винт m6 x 20")
         assert not product.attribute_values.filter(attribute__key="pitch").exists()
         assert list(
-            Category.objects.get(slug="bolts").table_columns.values_list("attribute__key", flat=True)
+            Category.objects.get(slug="bolts").table_columns.values_list(
+                "attribute__key", flat=True
+            )
         ) == ["pitch"]
 
     def test_reimport_of_same_file_skips_unchanged_rows(self, write_catalog):
@@ -120,7 +141,9 @@ class TestImportCatalog:
 
         call_command("import_catalog", write_catalog(shorter), deactivate_missing=True)
 
-        assert list(Product.objects.filter(is_active=True).values_list("sku", flat=True)) == ["SHA-00001"]
+        assert list(Product.objects.filter(is_active=True).values_list("sku", flat=True)) == [
+            "SHA-00001"
+        ]
 
     def test_dry_run_writes_nothing(self, write_catalog):
         call_command("import_catalog", write_catalog(CATALOG), dry_run=True)

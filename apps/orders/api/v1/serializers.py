@@ -50,7 +50,9 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         products = Product.objects.filter(sku__in=skus, is_active=True).in_bulk(field_name="sku")
 
         errors = [
-            {} if item["sku"].strip() in products else {"sku": ["Mahsulot topilmadi yoki sotuvda yo'q"]}
+            {}
+            if item["sku"].strip() in products
+            else {"sku": ["Mahsulot topilmadi yoki sotuvda yo'q"]}
             for item in items
         ]
         if any(errors):
@@ -63,7 +65,9 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             quantities[sku] = quantities.get(sku, 0) + item["qty"]
         too_many = [sku for sku, qty in quantities.items() if qty > MAX_QTY]
         if too_many:
-            raise serializers.ValidationError(f"Bitta mahsulotdan {MAX_QTY} qadoqdan ko'p bo'lmasin: {', '.join(too_many)}")
+            raise serializers.ValidationError(
+                f"Bitta mahsulotdan {MAX_QTY} qadoqdan ko'p bo'lmasin: {', '.join(too_many)}"
+            )
         return [(products[sku], qty) for sku, qty in quantities.items()]
 
     def create(self, validated_data):

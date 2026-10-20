@@ -68,7 +68,11 @@ class TestCategoryRetrieveAPI:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["path"] == ["consumables", "fasteners", "bolts"]
-        assert [item["name"] for item in response.data["trail"]] == ["Расходники", "Крепёж", "Болты"]
+        assert [item["name"] for item in response.data["trail"]] == [
+            "Расходники",
+            "Крепёж",
+            "Болты",
+        ]
         assert response.data["is_leaf"] is True
         assert response.data["product_count"] == 4
         assert response.data["table"] == {"group_by": "thread", "columns": ["length", "material"]}
@@ -76,7 +80,9 @@ class TestCategoryRetrieveAPI:
         assert response.data["first_sku"] == "B-4"
 
     def test_branch_category_returns_children(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-category-detail", args=["consumables/fasteners"]))
+        response = api_client.get(
+            reverse("catalog-category-detail", args=["consumables/fasteners"])
+        )
 
         assert response.data["is_leaf"] is False
         assert response.data["first_sku"] is None
@@ -102,7 +108,9 @@ class TestProductListAPI:
         assert skus(response.data["results"]) == ["B-4", "B-3", "B-2", "B-1"]
 
     def test_item_has_frontend_product_shape(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-product-list"), {"category": BOLTS, "attr_thread": "M10"})
+        response = api_client.get(
+            reverse("catalog-product-list"), {"category": BOLTS, "attr_thread": "M10"}
+        )
 
         (item,) = response.data["results"]
         assert item == {
@@ -126,7 +134,9 @@ class TestProductListAPI:
         url = reverse("catalog-product-list")
 
         either = api_client.get(url, {"category": BOLTS, "attr_thread": ["M6", "M10"]})
-        both = api_client.get(url, {"category": BOLTS, "attr_thread": "M6", "attr_material": "Сталь"})
+        both = api_client.get(
+            url, {"category": BOLTS, "attr_thread": "M6", "attr_material": "Сталь"}
+        )
 
         assert skus(either.data["results"]) == ["B-3", "B-2", "B-1"]
         assert skus(both.data["results"]) == ["B-2"]
@@ -137,7 +147,9 @@ class TestProductListAPI:
         assert skus(response.data["results"]) == ["C-1"]
 
     def test_unknown_attribute_parameter_is_ignored(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-product-list"), {"category": BOLTS, "attr_color": "Белый"})
+        response = api_client.get(
+            reverse("catalog-product-list"), {"category": BOLTS, "attr_color": "Белый"}
+        )
 
         assert response.data["count"] == 4
 
@@ -169,7 +181,9 @@ class TestFacetsAPI:
         assert body["first_sku"] == "B-4"
 
     def test_each_facet_counts_with_the_other_filters(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-facets"), {"category": BOLTS, "attr_system": METRIC})
+        response = api_client.get(
+            reverse("catalog-facets"), {"category": BOLTS, "attr_system": METRIC}
+        )
 
         body = response.data
         assert body["total"] == 3
@@ -179,7 +193,9 @@ class TestFacetsAPI:
         assert body["first_sku"] == "B-3"
 
     def test_chosen_value_without_products_stays_with_zero(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-facets"), {"category": BOLTS, "attr_thread": "M99"})
+        response = api_client.get(
+            reverse("catalog-facets"), {"category": BOLTS, "attr_thread": "M99"}
+        )
 
         body = response.data
         assert body["total"] == 0
@@ -195,7 +211,9 @@ class TestFacetsAPI:
         assert response.data["first_sku"] == "B-2"
 
     def test_children_are_counted_with_filters(self, api_client, catalog):
-        response = api_client.get(reverse("catalog-facets"), {"category": "consumables/fasteners", "q": "m6"})
+        response = api_client.get(
+            reverse("catalog-facets"), {"category": "consumables/fasteners", "q": "m6"}
+        )
 
         assert [(child["slug"], child["count"]) for child in response.data["children"]] == [
             ("bolts", 2),
@@ -215,15 +233,28 @@ class TestProductRetrieveAPI:
 
         body = response.data
         assert response.status_code == status.HTTP_200_OK
-        assert [spec["key"] for spec in body["specs"]] == ["system", "thread", "pitch", "length", "material"]
+        assert [spec["key"] for spec in body["specs"]] == [
+            "system",
+            "thread",
+            "pitch",
+            "length",
+            "material",
+        ]
         assert [item["slug"] for item in body["trail"]] == ["consumables", "fasteners", "bolts"]
         assert body["table"] == {"group_by": "thread", "columns": ["length", "material"]}
         assert body["variant_count"] == 4
         # Bog'liq "pitch" alohida chip qatori bo'lmaydi.
-        assert [group["key"] for group in body["variants"]] == ["system", "thread", "length", "material"]
+        assert [group["key"] for group in body["variants"]] == [
+            "system",
+            "thread",
+            "length",
+            "material",
+        ]
 
         thread = next(group for group in body["variants"] if group["key"] == "thread")
-        assert [(option["value"], option["sku"], option["selected"]) for option in thread["options"]] == [
+        assert [
+            (option["value"], option["sku"], option["selected"]) for option in thread["options"]
+        ] == [
             ("#10-24", "B-4", False),
             ("M6", "B-3", True),
             ("M10", "B-1", False),

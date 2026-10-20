@@ -88,14 +88,18 @@ POST /api/v1/orders/
 - Noma'lum yoki nofaol mahsulot xatosi o'sha qatorga beriladi: `{"items": [{}, {"sku": ["..."]}]}`.
 - Bitta manzildan `ORDERS_THROTTLE_RATE` tadan ko'p buyurtma qabul qilinmaydi (429). Xato to'ldirilgan forma sanalmaydi.
 
-## Testlar
+## Testlar va lint
 
 ```bash
 .venv/Scripts/python -m pytest
 .venv/Scripts/python manage.py check
+.venv/Scripts/ruff check .
+.venv/Scripts/ruff format .
 ```
 
-Testlar `apps/*/tests/` da; umumiy kichik katalog — `apps/catalog/tests/fixtures/`.
+Testlar `apps/*/tests/` da; umumiy kichik katalog — `apps/catalog/tests/fixtures/`. Ular `.env` siz ham ishlaydi: `DEBUG=True` da `SECRET_KEY` bo'sh bo'lsa lokal kalit olinadi, `DEBUG=False` da esa kalitsiz ishga tushmaydi.
+
+GitHub Actions (`.github/workflows/ci.yml`) `snaber-drf` ga har push va har PR da lint, Django tekshiruvlari, migratsiyalar va testlarni ishga tushiradi. Deploy qilmaydi.
 
 ## Serverga qo'yish
 

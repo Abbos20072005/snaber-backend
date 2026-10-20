@@ -98,6 +98,8 @@ class TestProductAdmin:
     def test_category_choices_are_leaves_only(self, admin_client, catalog):
         response = admin_client.get(reverse("admin:catalog_product_add"))
 
-        labels = [str(label) for _, label in response.context["adminform"].form.fields["category"].choices]
+        labels = [
+            str(label) for _, label in response.context["adminform"].form.fields["category"].choices
+        ]
         assert "Расходники › Крепёж › Болты" in labels
         assert "Расходники › Крепёж" not in labels

@@ -64,7 +64,11 @@ class CategoryTree:
         found = None
         for slug in slugs:
             found = next(
-                (child for child in self.get_children(found.pk if found else None) if child.slug == slug),
+                (
+                    child
+                    for child in self.get_children(found.pk if found else None)
+                    if child.slug == slug
+                ),
                 None,
             )
             if found is None:

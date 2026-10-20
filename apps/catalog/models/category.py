@@ -51,7 +51,9 @@ class Category(BaseModel):
     slug = models.SlugField(
         "Slug",
         max_length=100,
-        help_text="Sayt manzilidagi qism: /catalog/{yuqori}/{slug}. Bir xil darajada takrorlanmaydi.",
+        help_text=(
+            "Sayt manzilidagi qism: /catalog/{yuqori}/{slug}. Bir xil darajada takrorlanmaydi."
+        ),
     )
     name = models.CharField("Nomi", max_length=200)
     icon = models.CharField(
@@ -100,12 +102,20 @@ class Category(BaseModel):
 
         if self.pk and self._is_ancestor_of(self.parent_id):
             raise ValidationError(
-                {"parent": "Kategoriyani o'zining ichiga yoki ichki kategoriyasiga ko'chirib bo'lmaydi"}
+                {
+                    "parent": (
+                        "Kategoriyani o'zining ichiga yoki ichki kategoriyasiga ko'chirib bo'lmaydi"
+                    )
+                }
             )
         # Mahsulot faqat oxirgi darajadagi kategoriyada turadi.
         if self.parent.products.exists():
             raise ValidationError(
-                {"parent": "Bu kategoriyada mahsulotlar bor, unga ichki kategoriya qo'shib bo'lmaydi"}
+                {
+                    "parent": (
+                        "Bu kategoriyada mahsulotlar bor, unga ichki kategoriya qo'shib bo'lmaydi"
+                    )
+                }
             )
 
     def _is_ancestor_of(self, category_id):
@@ -121,9 +131,7 @@ class Category(BaseModel):
 class CategoryTableColumn(BaseModel):
     """Attribute column of a leaf category table, in display order."""
 
-    category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, related_name="table_columns"
-    )
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="table_columns")
     attribute = models.ForeignKey(
         "catalog.Attribute",
         verbose_name="Xususiyat",

@@ -13,7 +13,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "file", nargs="?", default=str(DEFAULT_FILE), help="JSON fayl (standart: fixtures/catalog.json)"
+            "file",
+            nargs="?",
+            default=str(DEFAULT_FILE),
+            help="JSON fayl (standart: fixtures/catalog.json)",
         )
         parser.add_argument(
             "--dry-run", action="store_true", help="Tekshiradi va hisoblaydi, bazaga yozmaydi"
@@ -29,15 +32,15 @@ class Command(BaseCommand):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
-            raise CommandError(f"Fayl topilmadi: {path}")
+            raise CommandError(f"Fayl topilmadi: {path}") from None
         except json.JSONDecodeError as error:
-            raise CommandError(f"JSON noto'g'ri: {error}")
+            raise CommandError(f"JSON noto'g'ri: {error}") from error
 
         importer = CatalogImporter(data, deactivate_missing=options["deactivate_missing"])
         try:
             stats = importer.run(dry_run=options["dry_run"])
         except CatalogImportError as error:
-            raise CommandError("Import to'xtatildi:\n" + "\n".join(error.errors))
+            raise CommandError("Import to'xtatildi:\n" + "\n".join(error.errors)) from error
 
         lines = [f"{key}: {value}" for key, value in sorted(stats.items())]
         prefix = "Sinov (bazaga yozilmadi)" if options["dry_run"] else "Import tugadi"

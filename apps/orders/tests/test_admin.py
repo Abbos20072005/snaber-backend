@@ -68,5 +68,7 @@ class TestOrderAdmin:
     def test_status_choices_follow_allowed_transitions(self, admin_client, order):
         response = admin_client.get(reverse("admin:orders_order_change", args=[order.pk]))
 
-        choices = [value for value, _ in response.context["adminform"].form.fields["status"].choices]
+        choices = [
+            value for value, _ in response.context["adminform"].form.fields["status"].choices
+        ]
         assert choices == [OrderStatus.NEW, OrderStatus.CONFIRMED, OrderStatus.CANCELLED]

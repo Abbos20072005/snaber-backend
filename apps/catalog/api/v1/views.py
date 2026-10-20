@@ -178,7 +178,9 @@ class ProductListAPIView(generics.ListAPIView):
 
         page = self.paginate_queryset(rows)
         context = {**self.get_serializer_context(), "tree": tree}
-        return self.get_paginated_response(ProductRowSerializer(page, many=True, context=context).data)
+        return self.get_paginated_response(
+            ProductRowSerializer(page, many=True, context=context).data
+        )
 
 
 class ProductFacetsAPIView(generics.GenericAPIView):

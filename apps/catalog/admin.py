@@ -163,9 +163,7 @@ class CategoryTreeListFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         tree = CategoryTree.load(active_products_only=False)
-        return [
-            (category.pk, f"{'· ' * depth}{category.name}") for category, depth in tree.walk()
-        ]
+        return [(category.pk, f"{'· ' * depth}{category.name}") for category, depth in tree.walk()]
 
     def queryset(self, request, queryset):
         if not self.value():
@@ -228,7 +226,8 @@ class ProductAdmin(AuthorMixin, admin.ModelAdmin):
         )
 
     def get_search_results(self, request, queryset, search_term):
-        # `search_text` kichik harflarda saqlanadi: kirill harflari uchun so'rov ham kichraytiriladi.
+        # `search_text` kichik harflarda saqlanadi: kirill harflari uchun so'rov ham
+        # kichraytiriladi.
         return super().get_search_results(request, queryset, search_term.lower())
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

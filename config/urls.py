@@ -10,8 +10,8 @@ from django.urls import include, path, re_path
 from django.views.static import serve
 from drf_spectacular.views import (
     SpectacularAPIView,
-    SpectacularSwaggerView,
     SpectacularRedocView,
+    SpectacularSwaggerView,
 )
 
 admin.site.site_header = "Snaber boshqaruv paneli"
@@ -37,7 +37,7 @@ urlpatterns = [
 # bu yo'nalishga so'rov yetib kelmaydi.
 urlpatterns += [
     re_path(
-        r"^%s(?P<path>.*)$" % re.escape(settings.MEDIA_URL.lstrip("/")),
+        rf"^{re.escape(settings.MEDIA_URL.lstrip('/'))}(?P<path>.*)$",
         serve,
         {"document_root": settings.MEDIA_ROOT},
     ),

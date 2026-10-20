@@ -1,0 +1,5 @@
+# Repo da har doim LF: Windows da ishlaganda ham Docker va CI bir xil fayl ko'radi.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

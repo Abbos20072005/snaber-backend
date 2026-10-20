@@ -14,7 +14,9 @@ from apps.catalog.api.v1.views import (
 urlpatterns = [
     # category
     path("tree/", CatalogTreeAPIView.as_view(), name="catalog-tree"),
-    path("categories/<path:path>/", CategoryRetrieveAPIView.as_view(), name="catalog-category-detail"),
+    path(
+        "categories/<path:path>/", CategoryRetrieveAPIView.as_view(), name="catalog-category-detail"
+    ),
     # attribute
     path("attributes/", AttributeListAPIView.as_view(), name="catalog-attribute-list"),
     # product
