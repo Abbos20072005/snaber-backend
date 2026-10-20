@@ -7,6 +7,7 @@ from apps.core.exceptions import (
 )
 from apps.core.services import BaseService
 from apps.order.api.v1.repositories.order import OrderRepository
+from apps.order.api.v1.utils.order import detect_order_type
 from apps.product.api.v1.repositories.cart import CartRepository
 from apps.product.api.v1.serializers.cart import (
     CartCreateSerializer,
@@ -256,14 +257,15 @@ class CartService(BaseService):
                     items_data.append(item_data)
 
             if items_data:
-                order_type = self._detect_order_type(items_data)
+                order_type = detect_order_type(items_data)
                 order = self.order_db.create_order_from_cart_group(
                     buyer=self.request.user,
                     company=company,
                     items_data=items_data,
                     order_type=order_type,
                 )
-                self._create_order_conversation(order)
+                # Chat center (conversation creation) is disabled for the frontend
+                # self._create_order_conversation(order)
                 order_ids.append(order.id)
 
         self.db.clear_cart(user=self.request.user)
