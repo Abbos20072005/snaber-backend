@@ -1,0 +1,21 @@
+services:
+  web:
+    build: .
+    image: snaber
+    container_name: snaber
+    restart: always
+    env_file: .env
+    # nginx 127.0.0.1:8020 ga proxy qiladi, port tashqariga ochilmaydi
+    ports:
+      - "127.0.0.1:8020:8020"
+    # collectstatic natijasi host ga chiqadi, nginx shu yerdan static beradi
+    volumes:
+      - ./static:/app/static
+      # yuklangan fayllar host'da saqlanadi
+      - ./media:/app/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8020), 3).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
