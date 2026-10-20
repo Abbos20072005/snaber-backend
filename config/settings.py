@@ -125,6 +125,14 @@ CORS_ALLOW_CREDENTIALS = True
 # CORS_ALLOW_HEADERS = ["x-api-key", "content-type", "Authorization"]
 CORS_ALLOW_HEADERS = ["x-api-key", "content-type", "Authorization", "accept-language"]
 
+# The guest cart and favorites are stored in the session cookie. The API is served from
+# another subdomain, so the cookie has to be sent on cross-site requests — that requires
+# SameSite=None together with Secure (HTTPS only).
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
+CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 
 # Database
