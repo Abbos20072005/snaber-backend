@@ -10,6 +10,7 @@ from apps.product.models import (
     Product,
     ProductAttributeValue,
     ProductCharacteristic,
+    ProductFamily,
     ProductImage,
     Unit,
 )
@@ -99,3 +100,10 @@ class CartItemAdmin(admin.ModelAdmin):
     list_filter = ("cart", "product")
     search_fields = ("cart", "product")
     autocomplete_fields = ["product", "cart"]
+
+
+@admin.register(ProductFamily)
+class ProductFamilyAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "category")
+    search_fields = ("name",)
+    filter_horizontal = ("axes",)

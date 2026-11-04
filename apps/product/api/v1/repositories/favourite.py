@@ -34,18 +34,6 @@ class FavouriteRepository:
 
         return Favourite.objects.filter(**filters).select_related("product")
 
-    def get_favourite_by_product(self, product_id, user=None, session_key=None):
-        filters = {"product_id": product_id}
-
-        if user:
-            filters["user"] = user
-        elif session_key:
-            filters["session_key"] = session_key
-        else:
-            return None
-
-        return Favourite.objects.filter(**filters).first()
-
     def delete_favourite(self, product_id: int, user=None, session_key=None):
         filters = {"product_id": product_id}
 

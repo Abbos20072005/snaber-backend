@@ -1,8 +1,8 @@
 from django.db.models import Count, IntegerField, Value
 
 from apps.authentication.models import User
-from apps.company.api.v1.filters.companies import RegionFilter, IndustryFilter
-from apps.company.models import Company, CompanyMember, Region, Industry
+from apps.company.api.v1.filters.companies import IndustryFilter, RegionFilter
+from apps.company.models import Company, CompanyMember, Industry, Region
 from apps.core.exceptions import ObjectNotFoundException
 from apps.product.models import Product
 
@@ -21,7 +21,7 @@ class CompanyRepository:
         return {
             "companies": Company.objects.count(),
             "products": Product.objects.count(),
-                        "users": User.objects.count(),
+            "users": User.objects.count(),
         }
 
     def get_company(self, company_id):
@@ -68,7 +68,9 @@ class CompanyRepository:
         return member.company
 
     def get_regions(self):
-        regions = RegionFilter(self.request.query_params, queryset=Region.objects.all()).qs
+        regions = RegionFilter(
+            self.request.query_params, queryset=Region.objects.all()
+        ).qs
         return regions
 
     def get_draft_company(self, company_id):
@@ -98,9 +100,10 @@ class CompanyRepository:
             member_counts=Count("members", distinct=True),
         )
 
-
     def get_industries(self):
-        industry = IndustryFilter(self.request.query_params, queryset=Industry.objects.all()).qs
+        industry = IndustryFilter(
+            self.request.query_params, queryset=Industry.objects.all()
+        ).qs
         return industry
 
     def get_region(self):

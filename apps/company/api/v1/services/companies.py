@@ -13,13 +13,16 @@ from apps.company.api.v1.repositories.companies import CompanyRepository
 from apps.company.api.v1.serializers.companies import (
     CompanyCreateSerializer,
     CompanyDetailListSerializer,
+    CompanyIndustriesSerializer,
+    CompanyRegionSerializer,
     # CompanyListSerializer,
     # CompanyStatisticsSerializer,
     CompanyUpdateSerializer,
     # DraftCompanySerializer,
-    RegionListSerializer, CompanyIndustriesSerializer, CompanyRegionSerializer,
+    RegionListSerializer,
 )
 from apps.core.services import BaseService, ViewService
+
 # Company draft moderation (disabled for the frontend)
 # from apps.company.models import Company as CompanyModel
 # from apps.product.api.v1.filters.products import ProductDynamicFilter

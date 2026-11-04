@@ -1,4 +1,3 @@
-from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -59,9 +58,7 @@ class CartCheckoutAPIView(APIView):
     @swagger_auto_schema(
         responses={201: OrderListSerializer},
         tags=["Cart"],
-        operation_description=(
-            "Checkout: create an order from cart items"
-        ),
+        operation_description=("Checkout: create an order from cart items"),
     )
     def post(self, request, *args, **kwargs):
         return CartService(request=request).checkout()

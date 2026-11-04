@@ -1,7 +1,6 @@
 from django_countries.serializer_fields import CountryField
 from rest_framework import serializers
 
-
 from apps.authentication.models import User
 
 

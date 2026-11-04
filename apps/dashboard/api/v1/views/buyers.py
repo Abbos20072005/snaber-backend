@@ -1,8 +1,6 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 from apps.core.permissions import IsBuyer
 from apps.dashboard.api.v1.serializers.buyers import (

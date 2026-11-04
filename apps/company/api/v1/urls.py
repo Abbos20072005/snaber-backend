@@ -8,6 +8,8 @@ from apps.company.api.v1.views.certificates import (
 from apps.company.api.v1.views.companies import (
     CompanyCreateListView,
     CompanyDetailUpdateDeleteView,
+    CompanyIndustriesListView,
+    CompanyRegionsListView,
     # Company mini-site (public company page) is disabled for the frontend
     # CompanyProductView,
     # CompanyStatisticsView,
@@ -17,7 +19,7 @@ from apps.company.api.v1.views.companies import (
     # PublicCompanyExcelView,
     # PublicCompanyListView,
     RegionListView,
-    SellerCompanyView, CompanyIndustriesListView, CompanyRegionsListView,
+    SellerCompanyView,
 )
 from apps.company.api.v1.views.galleries import (
     CompanyGalleryCreateView,
@@ -138,6 +140,5 @@ urlpatterns = [
         "regions/",
         CompanyRegionsListView.as_view(),
         name="company-regions",
-    )
+    ),
 ]
-

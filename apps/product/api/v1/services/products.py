@@ -37,14 +37,16 @@ class ProductService(BaseService):
         return self.get_response_object(
             self.db.get_product(product.id, only_active=False),
             ProductDetailSerializer,
-            context={"request": self.request},
+            context={"request": self.request, "include_inactive": True},
             status_code=status.HTTP_201_CREATED,
         )
 
     def get_product(self, *args, **kwargs):
         product = self.db.get_product(product_id=kwargs.get("id"), only_active=False)
         return self.get_response_object(
-            product, ProductDetailSerializer, context={"request": self.request}
+            product,
+            ProductDetailSerializer,
+            context={"request": self.request, "include_inactive": True},
         )
 
     def get_public_product(self, *args, **kwargs):
@@ -66,7 +68,7 @@ class ProductService(BaseService):
         return self.get_response_object(
             self.db.get_product(product.id, only_active=False),
             ProductDetailSerializer,
-            context={"request": self.request},
+            context={"request": self.request, "include_inactive": True},
         )
 
     def delete_product(self, *args, **kwargs):

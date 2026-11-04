@@ -14,31 +14,13 @@ from django.utils import timezone
 
 from apps.authentication.models import User
 from apps.order.models import Order, OrderItem
+from apps.product.models import Category, Product
 
 
 class AdminRepository:
     def get_today_orders_count(self):
         today = timezone.now().date()
         return Order.objects.filter(created_at__date=today).count()
-
-    def get_last_30_days_stats(self):
-        since = timezone.now().date() - timezone.timedelta(days=30)
-        decimal_field = DecimalField(max_digits=20, decimal_places=2)
-        line_total = ExpressionWrapper(
-            F("items__price") * F("items__quantity"),
-            output_field=decimal_field,
-        )
-
-        order_stats = Order.objects.filter(created_at__date__gte=since).aggregate(
-            total_spent=Coalesce(Sum(line_total), Value(0), output_field=decimal_field),
-            orders_count=Count("id", distinct=True),
-        )
-
-        user_stats = User.objects.filter(created_at__date__gte=since).aggregate(
-            total_users_count=Count("id"),
-        )
-
-        return {**order_stats, **user_stats}
 
     def get_user_counts(self):
         counts = User.objects.aggregate(
@@ -75,35 +57,34 @@ class AdminRepository:
         )
 
     def get_orders_count_by_category(self):
-        top_names = (
-            Order.objects.filter(items__product__category__isnull=False)
-            .values("items__product__category__name")
-            .annotate(counts=Count("id", distinct=True))
-            .order_by("-counts")
-            .values("items__product__category__name")[:3]
+        top = list(
+            OrderItem.objects.filter(product__category__isnull=False)
+            .values("product__category_id")
+            .annotate(orders_count=Count("order", distinct=True))
+            .order_by("-orders_count")[:3]
         )
-
-        return list(
-            Order.objects.filter(items__product__category__isnull=False)
-            .annotate(
-                category_name=Case(
-                    When(
-                        items__product__category__name__in=top_names,
-                        then=F("items__product__category__name"),
-                    ),
-                    default=Value("Others"),
-                )
-            )
-            .values("category_name")
-            .annotate(orders_count=Count("id", distinct=True))
-            .order_by(
-                Case(
-                    When(category_name="Others", then=Value(1)),
-                    default=Value(0),
-                ),
-                "-orders_count",
-            )
+        top_ids = [row["product__category_id"] for row in top]
+        names = {
+            category.id: category.name
+            for category in Category.objects.filter(id__in=top_ids)
+        }
+        result = [
+            {
+                "category_name": names.get(row["product__category_id"], ""),
+                "orders_count": row["orders_count"],
+            }
+            for row in top
+        ]
+        others = (
+            OrderItem.objects.filter(product__category__isnull=False)
+            .exclude(product__category_id__in=top_ids)
+            .values("order_id")
+            .distinct()
+            .count()
         )
+        if others:
+            result.append({"category_name": "Others", "orders_count": others})
+        return result
 
     def get_top_products_by_orders(self):
         decimal_field = DecimalField(max_digits=20, decimal_places=2)
@@ -111,8 +92,8 @@ class AdminRepository:
             F("price") * F("quantity"),
             output_field=decimal_field,
         )
-        return list(
-            OrderItem.objects.values(product_name=F("product__name"))
+        top = list(
+            OrderItem.objects.values("product_id")
             .annotate(
                 orders_count=Count("order", distinct=True),
                 orders_total=Coalesce(
@@ -121,6 +102,18 @@ class AdminRepository:
             )
             .order_by("-orders_count")[:5]
         )
+        names = {
+            product.id: product.name
+            for product in Product.objects.filter(id__in=[r["product_id"] for r in top])
+        }
+        return [
+            {
+                "product_name": names.get(row["product_id"], ""),
+                "orders_count": row["orders_count"],
+                "orders_total": row["orders_total"],
+            }
+            for row in top
+        ]
 
     def get_monthly_revenue_stats(self):
         now = timezone.now()

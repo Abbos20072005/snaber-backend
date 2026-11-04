@@ -2,9 +2,9 @@ from django.urls import path
 
 from apps.core.api.v1.views.aboutus import AboutUsImageView, AboutUsView
 from apps.core.api.v1.views.contacts import ContactView
-from apps.core.api.v1.views.legal import LegalClientsInfoView
-from apps.core.api.v1.views.faqs import FaqCreateListView, FaqDetailUpdateDeleteView
 from apps.core.api.v1.views.countries import CountryListView
+from apps.core.api.v1.views.faqs import FaqCreateListView, FaqDetailUpdateDeleteView
+from apps.core.api.v1.views.legal import LegalClientsInfoView
 
 urlpatterns = [
     path("contact/", ContactView.as_view(), name="contact"),

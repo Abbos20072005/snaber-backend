@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -63,8 +64,6 @@ class UserService(BaseService):
             raise InvalidAuthCredentialsException(
                 message="Invalid refresh token."
             ) from None
-
-    from rest_framework.exceptions import ValidationError
 
     def update_user(self, *args, **kwargs):
         serializer = UserUpdateSerializer(

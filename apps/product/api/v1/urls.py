@@ -18,6 +18,11 @@ from apps.product.api.v1.views.categories import (
     CategoryPublicBreadcrumbView,
     CategoryPublicDetailView,
 )
+from apps.product.api.v1.views.families import (
+    FamilyDetailUpdateDeleteView,
+    FamilyListCreateView,
+    FamilyVariantsView,
+)
 from apps.product.api.v1.views.favourite import FavouriteAPIView
 from apps.product.api.v1.views.products import (
     GlobalSearchView,
@@ -84,6 +89,18 @@ urlpatterns = [
     ),
     path("public/", ProductTopView.as_view(), name="product-public"),
     path("public/<int:id>/", ProductDetailView.as_view(), name="product-detail"),
+    # product families (variants)
+    path("families/", FamilyListCreateView.as_view(), name="family-list-create"),
+    path(
+        "families/<int:id>/",
+        FamilyDetailUpdateDeleteView.as_view(),
+        name="family-detail-update-delete",
+    ),
+    path(
+        "families/<int:id>/variants/",
+        FamilyVariantsView.as_view(),
+        name="family-variants",
+    ),
     # favourite and cart
     path("favourite/", FavouriteAPIView.as_view(), name="favourite"),
     path("cart/", CartAPIView.as_view(), name="cart"),

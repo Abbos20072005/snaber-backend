@@ -6,6 +6,7 @@ from apps.product.models import (
     Category,
     Product,
     ProductCharacteristic,
+    ProductFamily,
     Unit,
 )
 
@@ -22,6 +23,13 @@ class ProductTranslationOptions(TranslationOptions):
 
 
 translator.register(Product, ProductTranslationOptions)
+
+
+class ProductFamilyTranslationOptions(TranslationOptions):
+    fields = ("name",)
+
+
+translator.register(ProductFamily, ProductFamilyTranslationOptions)
 
 
 class ProductCharacteristicTranslationOptions(TranslationOptions):

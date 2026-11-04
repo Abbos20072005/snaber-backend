@@ -1,8 +1,8 @@
+from ckeditor.fields import RichTextField
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from ckeditor.fields import RichTextField
 
 
 class CreatedUpdatedAbstractModel(models.Model):

@@ -18,12 +18,11 @@ class CommentListCreateView(APIView):
         if self.request.method == "POST":
             return [IsAuthenticated(), IsBuyer()]
         return [AllowAny()]
-    
+
     @swagger_auto_schema(
         responses={200: CommentListSerializer(many=True)},
         tags=["Comment"],
-        operation_description="API to list comments. "
-        "Use ?product=<id> to filter.",
+        operation_description="API to list comments. Use ?product=<id> to filter.",
         manual_parameters=[
             openapi.Parameter(
                 name="product",
@@ -84,7 +83,7 @@ class CommentStatusView(APIView):
         if self.request.method == "GET":
             return [AllowAny()]
         return [IsAuthenticated()]
-        
+
     @swagger_auto_schema(
         responses={200: CommentStatusSerializer},
         tags=["Comment"],

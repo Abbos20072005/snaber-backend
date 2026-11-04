@@ -18,4 +18,3 @@ class BuyerRecentActivitySerializer(serializers.Serializer):
     quantity = serializers.IntegerField()
     amount = serializers.DecimalField(max_digits=20, decimal_places=2)
     date = serializers.DateTimeField(source="created_at")
-

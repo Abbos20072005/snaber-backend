@@ -1,7 +1,6 @@
 from apps.core.services import BaseService
 from apps.dashboard.api.v1.repositories.admins import AdminRepository
 from apps.dashboard.api.v1.serializers.admins import (
-    Last30DaysStatsSerializer,
     MonthlyRevenueItemSerializer,
     OrdersCountByCategorySerializer,
     TodayOrdersCountSerializer,
@@ -22,12 +21,6 @@ class AdminService(BaseService):
         }
         return self.get_response_object(
             data, TodayOrdersCountSerializer, context={"request": self.request}
-        )
-
-    def get_last_30_days_stats(self, *args, **kwargs):
-        data = self.db.get_last_30_days_stats()
-        return self.get_response_object(
-            data, Last30DaysStatsSerializer, context={"request": self.request}
         )
 
     def get_user_counts(self, *args, **kwargs):

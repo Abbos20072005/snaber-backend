@@ -1,4 +1,14 @@
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 
 from apps.core.exceptions import ObjectNotFoundException
 from apps.product.models import Category, Product, ProductImage
@@ -26,7 +36,18 @@ class ProductRepository:
         )
         if only_active:
             qs = qs.filter(is_active=True)
-        return qs
+        return qs.annotate(variants_count=self._variants_count())
+
+    @staticmethod
+    def _variants_count():
+        siblings = (
+            Product.objects.filter(family_id=OuterRef("family_id"), is_active=True)
+            .order_by()
+            .values("family_id")
+            .annotate(total=Count("id"))
+            .values("total")
+        )
+        return Coalesce(Subquery(siblings, output_field=IntegerField()), 0)
 
     def get_product(self, product_id, only_active=True):
         product = (
@@ -34,6 +55,13 @@ class ProductRepository:
             .prefetch_related(
                 "product_attribute_values__attribute",
                 "product_attribute_values__attribute_value",
+                "family__axes__attribute_values",
+                Prefetch(
+                    "family__variants",
+                    queryset=Product.objects.select_related("unit").prefetch_related(
+                        "images", "product_attribute_values__attribute_value"
+                    ),
+                ),
             )
             .filter(id=product_id)
             .first()

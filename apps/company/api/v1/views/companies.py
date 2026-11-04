@@ -6,14 +6,10 @@ from rest_framework.views import APIView
 from apps.company.api.v1.serializers.companies import (
     CompanyCreateSerializer,
     CompanyDetailListSerializer,
-    # Company list (Список компаний) is disabled for the frontend
-    # CompanyListSerializer,
-    # Company mini-site (statistics) is disabled for the frontend
-    # CompanyStatisticsSerializer,
     CompanyUpdateSerializer,
     # Company draft moderation (status + moderator comment) is disabled for the frontend
     # DraftCompanySerializer,
-    RegionListSerializer, CompanyIndustriesSerializer, CompanyRegionSerializer,
+    RegionListSerializer,
 )
 from apps.company.api.v1.services.companies import (
     CompanyService,
@@ -22,6 +18,7 @@ from apps.core.permissions import (
     IsAdmin,
     # Company draft moderation (disabled for the frontend)
 )
+
 # from apps.product.api.v1.serializers.products import ProductListSerializer
 
 
@@ -312,8 +309,10 @@ class RegionListView(APIView):
 #             **kwargs,
 #         )
 
+
 class CompanyIndustriesListView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(
         tags=["Company"],
         manual_parameters=[
@@ -328,8 +327,10 @@ class CompanyIndustriesListView(APIView):
     def get(self, request, *args, **kwargs):
         return CompanyService(request=request).get_company_industries(*args, **kwargs)
 
+
 class CompanyRegionsListView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(
         tags=["Company"],
         manual_parameters=[

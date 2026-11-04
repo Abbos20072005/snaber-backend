@@ -2,6 +2,8 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.product.api.v1.serializers.categories import CategoryListSerializer
+from apps.product.api.v1.serializers.families import FamilyDetailSerializer
+from apps.product.api.v1.utils.family import field_error, validate_variant_options
 from apps.product.models import (
     Attribute,
     AttributeValue,
@@ -75,8 +77,14 @@ class ProductListSerializer(serializers.Serializer):
     is_active = serializers.BooleanField()
     average_rating = serializers.DecimalField(max_digits=3, decimal_places=1)
     specifications = serializers.SerializerMethodField()
+    family_id = serializers.IntegerField(allow_null=True)
+    variants_count = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField()
     created_at = serializers.DateTimeField()
+
+    def get_variants_count(self, obj):
+        # Annotated by the repository; products outside a family have no variants.
+        return getattr(obj, "variants_count", 0)
 
     def _image_urls(self, obj):
         request = self.context.get("request")
@@ -95,11 +103,14 @@ class ProductListSerializer(serializers.Serializer):
         return self._image_urls(obj)[:10]
 
     def get_specifications(self, obj):
-        # Filter attributes first, then the free-form characteristics, like the detail page.
+        # Filter attributes first, then the free-form characteristics, like the page.
         rows = [
             {"name": item.attribute.name, "value": item.attribute_value.value}
             for item in obj.product_attribute_values.all()
-        ] + [{"name": item.name, "value": item.value} for item in obj.characteristics.all()]
+        ] + [
+            {"name": item.name, "value": item.value}
+            for item in obj.characteristics.all()
+        ]
         return rows[:6]
 
 
@@ -111,6 +122,7 @@ class ProductDetailSerializer(ProductListSerializer):
     attributes = ProductAttributeValueSerializer(
         many=True, source="product_attribute_values"
     )
+    family = FamilyDetailSerializer(allow_null=True)
     name_uz = serializers.CharField()
     name_ru = serializers.CharField()
     name_en = serializers.CharField()
@@ -180,6 +192,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             "description_ru",
             "description_en",
             "category",
+            "family",
             "sku",
             "unit",
             "price",
@@ -205,7 +218,19 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             )
         return category
 
+    def validate_sku(self, sku):
+        sku = sku.strip()
+        taken = Product.objects.filter(sku__iexact=sku)
+        if self.instance:
+            taken = taken.exclude(id=self.instance.id)
+        if sku and taken.exists():
+            raise serializers.ValidationError(
+                "A product with this SKU already exists.", code="unique"
+            )
+        return sku
+
     def validate(self, attrs):
+        self._validate_family(attrs)
         # The manager fills in Uzbek only; Russian and English default to it
         # until they are translated.
         for field in ("name", "description"):
@@ -218,6 +243,40 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
                 if not attrs.get(key) and not current:
                     attrs[key] = source
         return attrs
+
+    def _validate_family(self, attrs):
+        family = (
+            attrs["family"]
+            if "family" in attrs
+            else getattr(self.instance, "family", None)
+        )
+        if not family:
+            return
+
+        category = attrs.get("category") or getattr(self.instance, "category", None)
+        if category and family.category_id != category.id:
+            raise field_error(
+                "family",
+                "family_category_mismatch",
+                "The product must be in the category of its family.",
+            )
+
+        if "attribute_values" in attrs:
+            values = attrs["attribute_values"]
+        else:
+            values = (
+                [
+                    row.attribute_value
+                    for row in self.instance.product_attribute_values.select_related(
+                        "attribute_value"
+                    )
+                ]
+                if self.instance
+                else []
+            )
+        validate_variant_options(
+            family, values, exclude_product_id=getattr(self.instance, "id", None)
+        )
 
     @staticmethod
     def _set_characteristics(product, characteristics):

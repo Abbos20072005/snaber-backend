@@ -1,16 +1,15 @@
 from django.db.models import (
-    Count,
-    Sum,
-    Q,
-    F,
-    Value,
-    DecimalField,
-    IntegerField,
-    ExpressionWrapper,
-    Max,
     Case,
-    When,
     CharField,
+    Count,
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    IntegerField,
+    Max,
+    Sum,
+    Value,
+    When,
 )
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone

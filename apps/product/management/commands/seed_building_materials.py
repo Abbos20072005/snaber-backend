@@ -13,7 +13,6 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-
 # ---------------------------------------------------------------------------
 # Data: (en, ru, uz) triples. Plain strings are language-neutral (grades, sizes).
 # ---------------------------------------------------------------------------
@@ -1172,7 +1171,10 @@ ROOTS = [
                     ),
                     (
                         ("Surface", "Поверхность", "Sirt"),
-                        [("Matt", "Матовая", "Xira"), ("Glossy", "Глянцевая", "Yaltiroq")],
+                        [
+                            ("Matt", "Матовая", "Xira"),
+                            ("Glossy", "Глянцевая", "Yaltiroq"),
+                        ],
                     ),
                 ],
                 "products": [
@@ -1308,7 +1310,10 @@ ROOTS = [
                     ),
                     (
                         ("Finish", "Финиш", "Yuzasi"),
-                        [("Matt", "Матовая", "Xira"), ("Silk", "Шелковистая", "Ipakdek")],
+                        [
+                            ("Matt", "Матовая", "Xira"),
+                            ("Silk", "Шелковистая", "Ipakdek"),
+                        ],
                     ),
                 ],
                 "products": [

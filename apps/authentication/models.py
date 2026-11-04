@@ -4,7 +4,6 @@ from django.contrib.auth.hashers import check_password, identify_hasher, make_pa
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 from django_countries.fields import CountryField
 
 from apps.authentication.api.v1.services.user_manager import UserManager

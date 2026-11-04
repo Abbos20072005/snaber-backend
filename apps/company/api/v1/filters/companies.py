@@ -1,5 +1,5 @@
 import django_filters
-from django.db.models import Count, Q
+from django.db.models import Q
 
 from apps.company.models import Company, Industry, Region
 
@@ -22,9 +22,7 @@ class CompanyFilter(django_filters.FilterSet):
 
     def industry_filter(self, queryset, name, value):
         industry_ids = value.split(",")
-        return queryset.filter(
-            industries__id__in=industry_ids
-        ).distinct()
+        return queryset.filter(industries__id__in=industry_ids).distinct()
 
     def search_filter(self, queryset, name, value):
         return queryset.filter(
@@ -81,9 +79,7 @@ class IndustryFilter(django_filters.FilterSet):
         fields = ("search",)
 
     def search_filter(self, queryset, name, value):
-        return queryset.filter(
-            Q(name__icontains=value)
-        )
+        return queryset.filter(Q(name__icontains=value))
 
 
 class RegionFilter(django_filters.FilterSet):
@@ -94,6 +90,4 @@ class RegionFilter(django_filters.FilterSet):
         fields = ("search",)
 
     def search_filter(self, queryset, name, value):
-        return queryset.filter(
-            Q(name__icontains=value)
-        )
+        return queryset.filter(Q(name__icontains=value))

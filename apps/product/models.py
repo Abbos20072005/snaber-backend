@@ -52,6 +52,32 @@ class Unit(CreatedUpdatedAbstractModel):
         return self.unit
 
 
+class ProductFamily(CreatedUpdatedAbstractModel):
+    """Products that are variants of each other, e.g. one bearing type in many sizes.
+
+    Every variant stays a normal product with its own SKU, price and stock; the axes
+    are the attributes (diameter, width, ...) that tell the variants apart.
+    """
+
+    name = models.CharField(max_length=255)
+    category = models.ForeignKey(
+        "product.Category",
+        on_delete=models.CASCADE,
+        related_name="families",
+    )
+    axes = models.ManyToManyField(
+        "product.Attribute", related_name="families", blank=True
+    )
+
+    class Meta:
+        verbose_name = "Product family"
+        verbose_name_plural = "Product families"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return self.name
+
+
 class Product(CreatedUpdatedAbstractModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
@@ -59,6 +85,13 @@ class Product(CreatedUpdatedAbstractModel):
         "product.Category",
         on_delete=models.CASCADE,
         related_name="category_products",
+    )
+    family = models.ForeignKey(
+        "product.ProductFamily",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="variants",
     )
     sku = models.CharField(max_length=100, blank=True, default="")
     unit = models.ForeignKey(
@@ -74,14 +107,19 @@ class Product(CreatedUpdatedAbstractModel):
     )
     stock_quantity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
-    average_rating = models.DecimalField(
-        max_digits=3, decimal_places=1, default=0.0
-    )
+    average_rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
 
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
         ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sku"],
+                condition=~models.Q(sku=""),
+                name="unique_product_sku",
+            )
+        ]
 
     def __str__(self):
         return self.name

@@ -4,7 +4,6 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import IsAdmin
 from apps.dashboard.api.v1.serializers.admins import (
-    Last30DaysStatsSerializer,
     MonthlyRevenueItemSerializer,
     OrdersCountByCategorySerializer,
     TodayOrdersCountSerializer,
@@ -25,19 +24,6 @@ class TodayOrdersCountAPIView(APIView):
     )
     def get(self, request, *args, **kwargs):
         return AdminService(request=request).get_today_orders_count(*args, **kwargs)
-
-
-class Last30DaysStatsAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
-
-    @swagger_auto_schema(
-        responses={200: Last30DaysStatsSerializer()},
-        tags=["Dashboard"],
-        operation_description="Returns last 30 days stats: total money "
-        "spent, total orders count, total users count",
-    )
-    def get(self, request, *args, **kwargs):
-        return AdminService(request=request).get_last_30_days_stats(*args, **kwargs)
 
 
 class UserCountsAPIView(APIView):

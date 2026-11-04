@@ -1,7 +1,5 @@
-import sys
-
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import Http404, JsonResponse
+from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.exceptions import APIException, ErrorDetail, MethodNotAllowed
@@ -62,17 +60,6 @@ class APIExceptionFormatter:
             "errors": self.errors,
             "exception_class": self.exception_class,
         }
-
-
-def server_error(request, *args, **kwargs):
-    exc_type, exc_value, _ = sys.exc_info()
-    data = {
-        "message": str(exc_value),
-        "message_key": "internal_server_error",
-        "errors": {},
-        "exception_class": exc_type.__name__,
-    }
-    return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def drf_exception_handler(exception, context):

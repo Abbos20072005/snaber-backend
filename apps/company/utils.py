@@ -1,10 +1,5 @@
 from django.utils.translation import gettext_lazy as _
 
-from apps.authentication.models import User
-from apps.company.models import Company, CompanyMember
-
-
-
 
 def format_response_time(seconds: int) -> str:
     if seconds < 60:

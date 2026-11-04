@@ -2,7 +2,6 @@ from django.urls import path
 
 from apps.dashboard.api.v1.views.admins import (
     CurrentWeekJoinedUsersAPIView,
-    Last30DaysStatsAPIView,
     MonthlyRevenueStatsAPIView,
     OrdersCountByCategoryAPIView,
     TodayOrdersCountAPIView,
@@ -10,9 +9,14 @@ from apps.dashboard.api.v1.views.admins import (
     UserCountsAPIView,
 )
 from apps.dashboard.api.v1.views.buyers import (
-    BuyerRecentBuyingActivityAPIView,
-    BuyerPurchaseMomentumAPIView,
     BuyerKpiAPIView,
+    BuyerPurchaseMomentumAPIView,
+    BuyerRecentBuyingActivityAPIView,
+)
+from apps.dashboard.api.v1.views.insights import (
+    AbandonedCartsAPIView,
+    OverviewAPIView,
+    StockAlertsAPIView,
 )
 
 urlpatterns = [
@@ -20,11 +24,6 @@ urlpatterns = [
         "admins/today-orders/",
         TodayOrdersCountAPIView.as_view(),
         name="admin-today-orders",
-    ),
-    path(
-        "admins/last-30-days-stats/",
-        Last30DaysStatsAPIView.as_view(),
-        name="admin-last-30-days-stats",
     ),
     path(
         "admins/monthly-revenue/",
@@ -51,6 +50,17 @@ urlpatterns = [
         OrdersCountByCategoryAPIView.as_view(),
         name="admin-orders-by-category",
     ),
+    path("admins/overview/", OverviewAPIView.as_view(), name="admin-overview"),
+    path(
+        "admins/abandoned-carts/",
+        AbandonedCartsAPIView.as_view(),
+        name="admin-abandoned-carts",
+    ),
+    path(
+        "admins/stock-alerts/",
+        StockAlertsAPIView.as_view(),
+        name="admin-stock-alerts",
+    ),
     # Chat center (buyer engagement chart) is disabled for the frontend
     # path(
     #     "sellers/buyer-engagement/",
@@ -73,4 +83,3 @@ urlpatterns = [
         name="buyer-dashboard-recent-buying-activity",
     ),
 ]
-

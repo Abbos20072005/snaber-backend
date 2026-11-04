@@ -5,12 +5,6 @@ class TodayOrdersCountSerializer(serializers.Serializer):
     orders_count = serializers.IntegerField()
 
 
-class Last30DaysStatsSerializer(serializers.Serializer):
-    total_spent = serializers.DecimalField(max_digits=20, decimal_places=2)
-    orders_count = serializers.IntegerField()
-    total_users_count = serializers.IntegerField()
-
-
 class UserCountsSerializer(serializers.Serializer):
     buyers = serializers.IntegerField()
     admins = serializers.IntegerField()
