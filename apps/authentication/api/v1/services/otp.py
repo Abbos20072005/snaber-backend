@@ -1,7 +1,5 @@
 import uuid
 
-from django.conf import settings
-
 from apps.authentication.api.v1.serializers.otp import (
     OTPSendSerializer,
     OTPVerifySerializer,
@@ -21,15 +19,10 @@ class OTPService(BaseService):
         )
         serializer.is_valid(raise_exception=True)
 
-        resend_after = send_otp(serializer.validated_data["phone_number"])
+        result = send_otp(serializer.validated_data["phone_number"])
 
         return self.get_response_object(
-            obj={
-                "result": {
-                    "expires_in": settings.OTP_EXPIRY,
-                    "resend_after": resend_after,
-                }
-            },
+            obj={"result": result},
             context={"request": self.request},
         )
 

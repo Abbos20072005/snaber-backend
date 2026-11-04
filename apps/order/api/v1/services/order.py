@@ -8,6 +8,9 @@ from apps.order.api.v1.serializers.order import (
     OrderCreateSerializer,
     OrderListSerializer,
 )
+from apps.product.api.v1.repositories.cart import CartRepository
+from apps.product.api.v1.serializers.cart import CartResponseSerializer
+from apps.product.api.v1.utils.cart import get_cart_item_total_price
 from apps.product.models import CartItem
 
 
@@ -77,6 +80,50 @@ class OrderService(BaseService):
             )
         self.db.delete(pk)
         return self.get_response_object(status_code=status.HTTP_204_NO_CONTENT)
+
+    def reorder(self, pk):
+        """Put the products of a past order back into the cart of the current user.
+
+        Quantities add up to what is already in the cart and are capped by the stock.
+        Products that are no longer sold or are out of stock are skipped.
+        """
+        order = self.db.get_by_id(pk)
+        if not order:
+            raise ObjectNotFoundException(
+                message="Order not found", message_key="order_not_found"
+            )
+        self._verify_order_access(order, self.request.user)
+
+        cart_db = CartRepository()
+        cart = cart_db.get_cart(user=self.request.user) or cart_db.create_cart(
+            user=self.request.user
+        )
+
+        for order_item in order.items.all():
+            product = order_item.product
+            if not product.is_active or product.stock_quantity <= 0:
+                continue
+
+            cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+            quantity = order_item.quantity + (cart_item.quantity if cart_item else 0)
+            quantity = min(quantity, product.stock_quantity)
+
+            if cart_item:
+                cart_db.update_cart_quantity(cart_item, quantity)
+            else:
+                cart_db.create_cart_item(cart, product, quantity)
+
+        items = cart_db.get_cart_items(user=self.request.user)
+        return self.get_response_object(
+            {
+                "items": items,
+                "total_amount": sum(get_cart_item_total_price(item) for item in items),
+                "products": len(items),
+            },
+            CartResponseSerializer,
+            context={"request": self.request},
+            status_code=status.HTTP_200_OK,
+        )
 
     @staticmethod
     def _verify_order_access(order, user):

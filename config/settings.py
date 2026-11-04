@@ -259,9 +259,10 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_DB = int(os.getenv("REDIS_DB", 1))
-OTP_EXPIRY = int(os.getenv("OTP_EXPIRY", 300))
-OTP_RESEND_COOLDOWN = int(os.getenv("OTP_RESEND_COOLDOWN", 60))
-OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", 5))
+OTP_EXPIRY = int(os.getenv("OTP_EXPIRY", 120))
+OTP_RESEND_COOLDOWN = int(os.getenv("OTP_RESEND_COOLDOWN", 180))
+OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", 3))
+OTP_BLOCK_DURATION = int(os.getenv("OTP_BLOCK_DURATION", 3600))
 OTP_MAX_SENDS_PER_HOUR = int(os.getenv("OTP_MAX_SENDS_PER_HOUR", 5))
 
 # OTP codes are delivered to a Telegram channel until an SMS provider is connected.

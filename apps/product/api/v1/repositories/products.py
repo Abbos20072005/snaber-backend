@@ -1,5 +1,19 @@
+from django.db.models import Case, IntegerField, Value, When
+
 from apps.core.exceptions import ObjectNotFoundException
 from apps.product.models import Category, Product, ProductImage
+
+
+def rank_by_name(queryset, search):
+    """Closest names first: exact match, then prefix match, then the rest."""
+    return queryset.annotate(
+        name_rank=Case(
+            When(name__iexact=search, then=Value(0)),
+            When(name__istartswith=search, then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        )
+    ).order_by("name_rank", "name")
 
 
 class ProductRepository:
@@ -52,6 +66,6 @@ class ProductRepository:
         products = self.get_products()
         categories = Category.objects.filter(is_active=True)
         if search:
-            products = products.filter(name__icontains=search)
-            categories = categories.filter(name__icontains=search)
+            products = rank_by_name(products.filter(name__icontains=search), search)
+            categories = rank_by_name(categories.filter(name__icontains=search), search)
         return {"products": products[:5], "categories": categories[:5]}

@@ -11,6 +11,7 @@ from apps.order.api.v1.serializers.order import (
     OrderListSerializer,
 )
 from apps.order.api.v1.services.order import OrderService
+from apps.product.api.v1.serializers.cart import CartResponseSerializer
 
 
 class OrderListView(APIView):
@@ -90,3 +91,16 @@ class OrderDetailView(APIView):
     )
     def delete(self, request, pk):
         return OrderService(request=request).delete_order(pk)
+
+
+class OrderReorderView(APIView):
+    permission_classes = [IsAuthenticated, IsBuyer | IsAdmin]
+
+    @swagger_auto_schema(
+        responses={200: CartResponseSerializer},
+        tags=["Order"],
+        operation_description="API to put the products of a past order back"
+        " into the cart. Products that are no longer available are skipped.",
+    )
+    def post(self, request, pk):
+        return OrderService(request=request).reorder(pk)
