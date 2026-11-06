@@ -6,3 +6,4 @@ class ProductConfig(AppConfig):
 
     def ready(self):
         import apps.product.signals.categories
+        import apps.product.signals.images
