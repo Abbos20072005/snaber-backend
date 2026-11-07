@@ -24,7 +24,12 @@ class CategoryService(BaseService):
         categories = self.db.get_public_category(category_id)
 
         return self.get_response_object(
-            categories, CategoryPublicDetailSerializer, context={"request": self.request}
+            categories,
+            CategoryPublicDetailSerializer,
+            context={
+                "request": self.request,
+                "products_counts": self.db.get_products_counts(),
+            },
         )
 
     def get_public_categories(self, *args, **kwargs):

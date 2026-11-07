@@ -65,15 +65,21 @@ class CategoriesListSerializer(serializers.Serializer):
         return CategorySimpleSerializer(obj.parent, context={"request": request}).data
 
 
+class CategoryPublicChildSerializer(CategoryListSerializer):
+    products_count = serializers.SerializerMethodField()
+
+    def get_products_count(self, obj):
+        return self.context["products_counts"].get(obj.id, 0)
+
+
 class CategoryPublicDetailSerializer(CategoriesListSerializer):
     # Storefront drill-down: only active children, so the frontend can render the
     # next level of the tree (or the product list once `is_leaf` is true).
     children = serializers.SerializerMethodField()
 
     def get_children(self, obj):
-        request = self.context.get("request")
-        return CategoryListSerializer(
-            obj.children.filter(is_active=True), many=True, context={"request": request}
+        return CategoryPublicChildSerializer(
+            obj.children.filter(is_active=True), many=True, context=self.context
         ).data
 
 
