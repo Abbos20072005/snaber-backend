@@ -17,6 +17,7 @@ class OrderFilter(django_filters.FilterSet):
     class Meta:
         model = Order
         fields = (
+            "buyer",
             "created_from",
             "created_to",
             "search",

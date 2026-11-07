@@ -48,6 +48,22 @@ class UsersSerializers(serializers.Serializer):
     country = CountryField(required=False)
 
 
+class UsersListSerializer(UsersSerializers):
+    created_at = serializers.DateTimeField()
+    orders_count = serializers.IntegerField()
+    total_spent = serializers.DecimalField(max_digits=20, decimal_places=2)
+    last_order_at = serializers.DateTimeField(allow_null=True)
+
+
+class UserDetailSerializer(UsersListSerializer):
+    average_order = serializers.SerializerMethodField()
+
+    def get_average_order(self, obj):
+        if not obj.orders_count:
+            return 0
+        return round(obj.total_spent / obj.orders_count, 2)
+
+
 class UserUpdateSerializers(serializers.ModelSerializer):
     class Meta:
         model = User

@@ -5,8 +5,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.authentication.api.v1.filters.users import UserFilter
 from apps.authentication.api.v1.repositories.users import UserRepository
 from apps.authentication.api.v1.serializers.users import (
+    UserDetailSerializer,
     UserMeSerializer,
     UserRefreshTokenSerializer,
+    UsersListSerializer,
     UsersSerializers,
     UserUpdateSerializer,
     UserUpdateSerializers,
@@ -83,14 +85,14 @@ class UserService(BaseService):
         users = self.db.get_users()
         users = UserFilter(self.request.query_params, queryset=users).qs
         return self.get_paginated_response(
-            users, UsersSerializers, context={"request": self.request}
+            users, UsersListSerializer, context={"request": self.request}
         )
 
     def get_user(self, *args, **kwargs):
         user = self.db.get_user(user_id=kwargs.get("pk"))
         return self.get_response_object(
             user,
-            UsersSerializers,
+            UserDetailSerializer,
             context={"request": self.request},
         )
 
