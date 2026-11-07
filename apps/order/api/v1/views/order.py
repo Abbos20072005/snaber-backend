@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from apps.core.permissions import IsAdmin, IsBuyer
 from apps.order.api.v1.serializers.order import (
     OrderCreateSerializer,
+    OrderCustomItemPriceSerializer,
     OrderListSerializer,
 )
 from apps.order.api.v1.services.order import OrderService
@@ -104,3 +105,17 @@ class OrderReorderView(APIView):
     )
     def post(self, request, pk):
         return OrderService(request=request).reorder(pk)
+
+
+class OrderCustomItemPriceView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @swagger_auto_schema(
+        request_body=OrderCustomItemPriceSerializer,
+        responses={200: OrderListSerializer},
+        tags=["Order"],
+        operation_description="Set the unit price of a product the buyer added by "
+        "himself, the order total is recalculated",
+    )
+    def patch(self, request, pk):
+        return OrderService(request=request).set_custom_item_price(pk)

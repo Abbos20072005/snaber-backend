@@ -13,6 +13,10 @@ from apps.product.api.v1.serializers.products import (
     ProductImageUploadSerializer,
     ProductListSerializer,
 )
+from apps.product.api.v1.serializers.quick_order import (
+    QuickOrderLineSerializer,
+    QuickOrderSerializer,
+)
 from apps.product.api.v1.services.products import ProductService
 
 LIST_FILTER_PARAMETERS = [
@@ -158,6 +162,21 @@ class ProductTopView(APIView):
     )
     def get(self, request, *args, **kwargs):
         return ProductService(request=request).top_products(*args, **kwargs)
+
+
+class QuickOrderMatchView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @swagger_auto_schema(
+        request_body=QuickOrderSerializer,
+        responses={200: QuickOrderLineSerializer(many=True)},
+        tags=["Product"],
+        operation_description="Read a list from text, .xlsx or .csv and match every "
+        "line with the catalog products",
+    )
+    def post(self, request, *args, **kwargs):
+        return ProductService(request=request).match_quick_order(*args, **kwargs)
 
 
 class ProductDetailView(APIView):

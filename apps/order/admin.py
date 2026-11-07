@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.order.models import Order, OrderItem
+from apps.order.models import Order, OrderCustomItem, OrderItem
 
 
 class OrderItemInline(admin.TabularInline):
@@ -10,9 +10,15 @@ class OrderItemInline(admin.TabularInline):
     autocomplete_fields = ["product"]
 
 
+class OrderCustomItemInline(admin.TabularInline):
+    model = OrderCustomItem
+    extra = 0
+    fields = ("name", "quantity", "price")
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    inlines = [OrderItemInline]
+    inlines = [OrderItemInline, OrderCustomItemInline]
 
     list_display = (
         "id",

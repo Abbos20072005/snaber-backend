@@ -9,7 +9,10 @@ from apps.core.exceptions import (
 from apps.core.services import BaseService
 from apps.core.utils import set_guest_session_cookie
 from apps.order.api.v1.repositories.order import OrderRepository
-from apps.order.api.v1.serializers.order import OrderListSerializer
+from apps.order.api.v1.serializers.order import (
+    OrderCustomItemCreateSerializer,
+    OrderListSerializer,
+)
 from apps.product.api.v1.repositories.cart import CartRepository
 from apps.product.api.v1.serializers.cart import (
     CartCreateSerializer,
@@ -161,8 +164,16 @@ class CartService(BaseService):
         if not items:
             raise ObjectNotFoundException("Cart is empty")
 
+        # Products the buyer wrote by himself, they are not in the catalog.
+        custom_serializer = OrderCustomItemCreateSerializer(
+            data=self.request.data.get("custom_items", []), many=True
+        )
+        custom_serializer.is_valid(raise_exception=True)
+
         order = self.order_db.create_order_from_cart(
-            buyer=self.request.user, cart_items=items
+            buyer=self.request.user,
+            cart_items=items,
+            custom_items=custom_serializer.validated_data,
         )
         self.db.clear_cart(user=self.request.user)
 

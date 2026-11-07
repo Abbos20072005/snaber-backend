@@ -35,4 +35,5 @@ class OrderFilter(django_filters.FilterSet):
             | Q(buyer__email__icontains=value)
             | Q(buyer__phone_number__icontains=value)
             | Q(items__product__name__icontains=value)
+            | Q(custom_items__name__icontains=value)
         ).distinct()

@@ -11,6 +11,11 @@ from apps.product.api.v1.serializers.products import (
     ProductImageUploadSerializer,
     ProductListSerializer,
 )
+from apps.product.api.v1.serializers.quick_order import (
+    QuickOrderLineSerializer,
+    QuickOrderSerializer,
+)
+from apps.product.api.v1.utils.quick_order import parse_lines
 
 
 class ProductService(BaseService):
@@ -26,6 +31,21 @@ class ProductService(BaseService):
         ).qs
         return self.get_paginated_response(
             filtered_products, ProductListSerializer, context={"request": self.request}
+        )
+
+    def match_quick_order(self, *args, **kwargs):
+        serializer = QuickOrderSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        lines = parse_lines(
+            serializer.validated_data.get("text"), serializer.validated_data.get("file")
+        )
+        for line in lines:
+            line["matches"] = self.db.match_products(line["name"])
+        return self.get_response(
+            lines,
+            QuickOrderLineSerializer,
+            many=True,
+            context={"request": self.request},
         )
 
     def create_product(self, *args, **kwargs):

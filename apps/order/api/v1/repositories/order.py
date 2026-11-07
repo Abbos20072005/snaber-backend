@@ -2,11 +2,12 @@ from django.db import transaction
 
 from apps.authentication.models import User
 from apps.order.api.v1.filters.order import OrderFilter
-from apps.order.models import Order, OrderItem
+from apps.order.models import Order, OrderCustomItem, OrderItem
 
 ORDER_PREFETCH = (
     "items__product__unit",
     "items__product__images",
+    "custom_items",
 )
 
 
@@ -43,7 +44,7 @@ class OrderRepository:
         for item_data in items_data:
             OrderItem.objects.create(order=order, **item_data)
 
-    def create_order_from_cart(self, buyer, cart_items):
+    def create_order_from_cart(self, buyer, cart_items, custom_items):
         with transaction.atomic():
             order = Order.objects.create(buyer=buyer)
             for cart_item in cart_items:
@@ -52,8 +53,19 @@ class OrderRepository:
                     product=cart_item.product,
                     quantity=cart_item.quantity,
                 )
+            OrderCustomItem.objects.bulk_create(
+                OrderCustomItem(order=order, **item) for item in custom_items
+            )
             order.save()
             return order
+
+    def get_custom_item(self, pk):
+        return OrderCustomItem.objects.select_related("order").filter(id=pk).first()
+
+    def set_custom_item_price(self, custom_item, price):
+        custom_item.price = price
+        custom_item.save(update_fields=["price"])
+        custom_item.order.save()
 
     def delete(self, pk):
         order = self.get_by_id(pk)

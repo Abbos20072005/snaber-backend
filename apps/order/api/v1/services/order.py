@@ -6,6 +6,7 @@ from apps.core.services import BaseService
 from apps.order.api.v1.repositories.order import OrderRepository
 from apps.order.api.v1.serializers.order import (
     OrderCreateSerializer,
+    OrderCustomItemPriceSerializer,
     OrderListSerializer,
 )
 from apps.product.api.v1.repositories.cart import CartRepository
@@ -70,6 +71,21 @@ class OrderService(BaseService):
             OrderListSerializer,
             context={"request": self.request},
             status_code=status.HTTP_201_CREATED,
+        )
+
+    def set_custom_item_price(self, pk):
+        custom_item = self.db.get_custom_item(pk)
+        if not custom_item:
+            raise ObjectNotFoundException(
+                message="Order item not found", message_key="order_item_not_found"
+            )
+        serializer = OrderCustomItemPriceSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        self.db.set_custom_item_price(custom_item, serializer.validated_data["price"])
+        return self.get_response(
+            self.db.get_by_id(custom_item.order_id),
+            OrderListSerializer,
+            context={"request": self.request},
         )
 
     def delete_order(self, pk):

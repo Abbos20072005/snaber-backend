@@ -4,6 +4,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Prefetch,
+    Q,
     Subquery,
     Value,
     When,
@@ -50,6 +51,17 @@ class ProductRepository:
             .values("total")
         )
         return Coalesce(Subquery(siblings, output_field=IntegerField()), 0)
+
+    def match_products(self, name, limit=5):
+        # An exact code wins, otherwise every word of the name has to match.
+        products = self.get_products()
+        exact = products.filter(sku__iexact=name)[:limit]
+        if exact:
+            return list(exact)
+        query = Q()
+        for word in name.split():
+            query &= Q(name__icontains=word) | Q(sku__icontains=word)
+        return list(rank_by_name(products.filter(query), name)[:limit])
 
     def get_product(self, product_id, only_active=True):
         product = (

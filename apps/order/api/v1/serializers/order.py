@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.core.exceptions import ValidationError
-from apps.order.models import OrderItem
+from apps.order.models import OrderCustomItem, OrderItem
 from apps.product.api.v1.serializers.products import UnitBaseSerialzer
 from apps.product.models import Product
 
@@ -39,6 +39,31 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     def get_total_price(self, obj):
         return obj.quantity * obj.price
+
+
+class OrderCustomItemSerializer(serializers.ModelSerializer):
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderCustomItem
+        fields = ("id", "name", "quantity", "price", "total_price")
+
+    def get_total_price(self, obj):
+        return None if obj.price is None else obj.quantity * obj.price
+
+
+class OrderCustomItemCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderCustomItem
+        fields = ("name", "quantity")
+        extra_kwargs = {"quantity": {"min_value": 1}}
+
+
+class OrderCustomItemPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderCustomItem
+        fields = ("price",)
+        extra_kwargs = {"price": {"required": True, "min_value": 0}}
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
@@ -79,6 +104,11 @@ class OrderListSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     total_price = serializers.SerializerMethodField()
     items = OrderItemSerializer(many=True, read_only=True)
+    custom_items = OrderCustomItemSerializer(many=True, read_only=True)
 
     def get_total_price(self, obj):
-        return sum(item.quantity * item.price for item in obj.items.all())
+        return sum(item.quantity * item.price for item in obj.items.all()) + sum(
+            item.quantity * item.price
+            for item in obj.custom_items.all()
+            if item.price is not None
+        )

@@ -32,6 +32,7 @@ from apps.product.api.v1.views.products import (
     ProductImageView,
     ProductListCreateView,
     ProductTopView,
+    QuickOrderMatchView,
 )
 from apps.product.api.v1.views.units import (
     UnitListCreateView,
@@ -88,6 +89,7 @@ urlpatterns = [
         name="product-image-delete",
     ),
     path("public/", ProductTopView.as_view(), name="product-public"),
+    path("public/match/", QuickOrderMatchView.as_view(), name="product-quick-order"),
     path("public/<int:id>/", ProductDetailView.as_view(), name="product-detail"),
     # product families (variants)
     path("families/", FamilyListCreateView.as_view(), name="family-list-create"),
