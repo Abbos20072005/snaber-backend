@@ -74,6 +74,7 @@ class ProductListSerializer(serializers.Serializer):
     stock_quantity = serializers.IntegerField()
     unit = UnitBaseSerialzer(allow_null=True)
     category = serializers.IntegerField(source="category_id")
+    category_path = serializers.SerializerMethodField()
     is_active = serializers.BooleanField()
     average_rating = serializers.DecimalField(max_digits=3, decimal_places=1)
     specifications = serializers.SerializerMethodField()
@@ -81,6 +82,9 @@ class ProductListSerializer(serializers.Serializer):
     variants_count = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField()
     created_at = serializers.DateTimeField()
+
+    def get_category_path(self, obj):
+        return [item.name for item in obj.category.get_breadcrumbs()]
 
     def get_variants_count(self, obj):
         # Annotated by the repository; products outside a family have no variants.

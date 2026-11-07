@@ -28,7 +28,9 @@ def rank_by_name(queryset, search):
 
 class ProductRepository:
     def get_products(self, only_active=True):
-        qs = Product.objects.select_related("unit", "category").prefetch_related(
+        qs = Product.objects.select_related(
+            "unit", "category__parent__parent"
+        ).prefetch_related(
             "images",
             "characteristics",
             "product_attribute_values__attribute",
